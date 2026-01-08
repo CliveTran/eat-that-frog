@@ -1,5 +1,13 @@
 export type Priority = 'A' | 'B' | 'C' | 'D' | 'E';
 
+export interface ScheduleBlock {
+  id: string;
+  title: string;
+  startTime: string; // HH:MM
+  endTime: string; // HH:MM
+  color: string; // Tailwindiest class or hex
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -14,6 +22,7 @@ export interface Task {
   failureReason?: string;
   order: number;
   createdAt: number;
+  blockId?: string; // Links to ScheduleBlock
 }
 
 export interface DailyStats {

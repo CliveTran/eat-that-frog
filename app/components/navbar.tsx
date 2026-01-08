@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { Banknote, BookOpen, CheckCircle2, Info, Lightbulb, ListTodo, Target } from "lucide-react";
+import { Banknote, BookOpen, Calendar, CheckCircle2, Info, Lightbulb, ListTodo, Target } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 export function Navbar() {
@@ -10,6 +10,11 @@ export function Navbar() {
       to: "/",
       label: "Frogs",
       icon: ListTodo,
+    },
+    {
+      to: "/schedule",
+      label: "Schedule",
+      icon: Calendar,
     },
     {
       to: "/goals",

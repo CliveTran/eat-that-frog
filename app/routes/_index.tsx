@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { Route } from "./+types/_index";
-import type { Task, Priority, DailyStats } from "~/types";
+import type { Task, Priority, DailyStats, ScheduleBlock } from "~/types";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
@@ -51,11 +51,13 @@ TIME_OPTIONS.push({ value: "24", label: "24:00" });
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>("A");
   const [newTaskIsRecurring, setNewTaskIsRecurring] = useState(false);
   const [newTaskDuration, setNewTaskDuration] = useState("0.5");
+  const [newTaskBlockId, setNewTaskBlockId] = useState<string>("none");
   const [newTaskStartHour, setNewTaskStartHour] = useState<string>("");
   const [newTaskEndHour, setNewTaskEndHour] = useState<string>("");
   const [newTaskEndsNextDay, setNewTaskEndsNextDay] = useState(false);
@@ -225,6 +227,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const savedBlocks = localStorage.getItem("eat-that-frog-blocks");
+    if (savedBlocks) setBlocks(JSON.parse(savedBlocks));
+  }, []);
+
+  useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("eat-that-frog-tasks", JSON.stringify(tasks));
       localStorage.setItem("eat-that-frog-stats", JSON.stringify(dailyStats));
@@ -283,6 +290,13 @@ export default function Home() {
     setEditStartHour(val);
   }
 
+  useEffect(() => {
+    if (editingTask && editStartHour && editDuration) {
+      const { end } = calculateEndTime(editStartHour, editDuration);
+      if (end) setEditEndHour(end);
+    }
+  }, [editStartHour, editDuration, editingTask]);
+
   const saveEditedTask = () => {
       if (!editingTask || !editTitle.trim()) return;
 
@@ -295,20 +309,12 @@ export default function Home() {
           startHour: editStartHour ? parseFloat(editStartHour) : undefined,
           endHour: editEndHour ? parseFloat(editEndHour) : undefined,
           endsNextDay: editEndsNextDay,
+          blockId: editingTask.blockId,
       };
 
       setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
       setEditingTask(null);
   };
-
-  useEffect(() => {
-    if (editingTask && editStartHour && editDuration) {
-      const { end } = calculateEndTime(editStartHour, editDuration);
-      if (end) {
-          setEditEndHour(end);
-      }
-    }
-  }, [editStartHour, editDuration, editingTask]);
 
   useEffect(() => {
     if (newTaskStartHour && newTaskDuration) {
@@ -346,6 +352,7 @@ export default function Home() {
       startHour: newTaskStartHour ? parseFloat(newTaskStartHour) : undefined,
       endHour: newTaskEndHour ? parseFloat(newTaskEndHour) : undefined,
       endsNextDay: newTaskEndsNextDay,
+      blockId: newTaskBlockId !== "none" ? newTaskBlockId : undefined,
       order: maxOrder + 1,
       createdAt: Date.now(),
     };
@@ -355,6 +362,7 @@ export default function Home() {
     setNewTaskPriority("A");
     setNewTaskIsRecurring(false);
     setNewTaskDuration("0.5");
+    setNewTaskBlockId("none");
     setNewTaskStartHour("");
     setNewTaskEndHour("");
     setNewTaskEndsNextDay(false);
@@ -497,6 +505,30 @@ export default function Home() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* Block Selection in Edit */}
+                <div className="space-y-2 col-span-2">
+                   <Label>Schedule Block</Label>
+                   <Select 
+                        value={editingTask?.blockId || "none"} 
+                        onValueChange={(val) => {
+                             if (editingTask) {
+                                 setEditingTask({...editingTask, blockId: val === "none" ? undefined : val});
+                             }
+                        }}
+                    >
+                    <SelectTrigger>
+                      <SelectValue placeholder="No Block" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Block</SelectItem>
+                      {blocks.map(b => (
+                          <SelectItem key={b.id} value={b.id}>{b.title} ({b.startTime})</SelectItem>
+                      ))}
+                    </SelectContent>
+                   </Select>
+                </div>
+
                 <div className="space-y-2">
                    <Label htmlFor="edit-endHour">End Time</Label>
                    <Select value={editEndHour} onValueChange={setEditEndHour}>
@@ -673,9 +705,14 @@ export default function Home() {
                   <Badge className={cn("text-lg px-3 py-1", PRIORITY_COLORS[frog.priority])}>
                     Priority {frog.priority}
                   </Badge>
-                  <Button variant="ghost" size="icon" onClick={() => openEditModal(frog)} className="text-slate-400 hover:text-blue-500">
-                    <Pencil className="h-5 w-5" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEditModal(frog)} className="text-slate-400 hover:text-blue-500">
+                        <Pencil className="h-5 w-5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => deleteTask(frog.id)} className="text-slate-400 hover:text-red-500">
+                        <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </div>
                 </div>
                 <CardTitle className="text-3xl mt-2 flex items-center gap-2">
                   {frog.title}
@@ -733,67 +770,10 @@ export default function Home() {
           </Card>
         )}
 
-        <div className="grid md:grid-cols-[1fr_350px] gap-8">
+        <div className="grid gap-8">
           
           {/* Main List */}
           <div className="space-y-6">
-            
-            {/* Daily Schedule */}
-            <Card>
-              <CardHeader className="pb-3 border-b dark:border-slate-800">
-                 <CardTitle className="text-lg flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-slate-500" /> 
-                    Daily Schedule
-                 </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div ref={scheduleRef} className="h-64 overflow-y-auto custom-scrollbar pr-2 relative">
-                  {TIME_OPTIONS.filter(o => o.value !== "24").map((option) => {
-                    const timeValue = parseFloat(option.value);
-                    const tasksAtTime = activeTasks.filter(t => {
-                        if (t.startHour === undefined || t.endHour === undefined) return false;
-                        
-                        if (t.endsNextDay) {
-                             // Case: 9pm (21) to 8am (8)
-                             // Active if time >= 21 OR time < 8
-                             return timeValue >= t.startHour || timeValue < t.endHour;
-                        } else {
-                            // Case: 9am (9) to 11am (11)
-                            // Active if 9 <= time < 11
-                            return t.startHour <= timeValue && t.endHour > timeValue; 
-                        }
-                    });
-                    
-                    const currentHourFloat = currentTime.getHours() + currentTime.getMinutes() / 60;
-                    const isCurrentSlot = currentHourFloat >= timeValue && currentHourFloat < timeValue + 0.5;
-
-                    return (
-                        <div key={option.value} id={`schedule-hour-${Math.floor(timeValue)}`} 
-                            className={cn(
-                                "flex border-b last:border-0 dark:border-slate-800 transition-colors duration-500", 
-                                option.value.endsWith('.5') ? "bg-slate-50/50 dark:bg-slate-900/20" : "",
-                                isCurrentSlot ? "bg-blue-100 dark:bg-blue-900/30 border-l-4 border-l-blue-500" : ""
-                            )}>
-                            <div className={cn(
-                                "w-16 py-2 pr-4 text-xs font-mono text-right text-slate-500 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-end",
-                                isCurrentSlot ? "text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20" : ""
-                            )}>
-                                {option.label}
-                            </div>
-                            <div className="flex-1 p-1 min-h-[36px] relative hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                {tasksAtTime.map(task => (
-                                    <div key={task.id} className={cn("text-xs rounded px-2 py-1 mb-1 shadow-sm border truncate", PRIORITY_COLORS[task.priority])}>
-                                        <span className="font-bold mr-1 opacity-75">[{task.priority}]</span>
-                                        {task.title}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
 
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold tracking-tight">Task List</h2>
@@ -920,6 +900,20 @@ export default function Home() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div className="space-y-1">
+                       <Label>Assign to Block</Label>
+                       <Select value={newTaskBlockId} onValueChange={setNewTaskBlockId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="No Block" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Block</SelectItem>
+                          {blocks.map(b => (
+                              <SelectItem key={b.id} value={b.id}>{b.title} ({b.startTime})</SelectItem>
+                          ))}
+                        </SelectContent>
+                       </Select>
                     </div>
                     <div className="space-y-2">
                        <Label htmlFor="endHour">End Time</Label>
