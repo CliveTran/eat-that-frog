@@ -21,3 +21,26 @@ export interface DailyStats {
   frogEaten: boolean;
   tasksCompleted: number;
 }
+
+export type GoalCategory = 'Career' | 'Health' | 'Finance' | 'Personal' | 'Education' | 'Other';
+
+export type StepStatus = 'Not Started' | 'In Progress' | 'Completed';
+
+export interface GoalStep {
+  id: string;
+  title: string;
+  status: StepStatus;
+  completed?: boolean; // Deprecated, kept for backward compatibility if needed, but better to migrate
+}
+
+export interface Goal {
+  id: string;
+  title: string;
+  description?: string;
+  category: GoalCategory;
+  year: number;
+  status: 'Not Started' | 'In Progress' | 'Completed';
+  progress: number; // 0-100
+  steps: GoalStep[];
+  createdAt: number;
+}

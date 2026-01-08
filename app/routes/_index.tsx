@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import type { Route } from "./+types/home";
+import { useState, useEffect, useRef } from "react";
+import type { Route } from "./+types/_index";
 import type { Task, Priority, DailyStats } from "~/types";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -60,6 +60,8 @@ export default function Home() {
   const [newTaskEndHour, setNewTaskEndHour] = useState<string>("");
   const [newTaskEndsNextDay, setNewTaskEndsNextDay] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  const scheduleRef = useRef<HTMLDivElement>(null);
   
   // Timer for current time highlight
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -230,11 +232,16 @@ export default function Home() {
   }, [tasks, dailyStats, isLoaded]);
 
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && scheduleRef.current) {
       const currentHour = new Date().getHours();
       const element = document.getElementById(`schedule-hour-${currentHour}`);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const container = scheduleRef.current;
+        const topPos = element.offsetTop;
+        container.scrollTo({
+          top: topPos - (container.clientHeight / 2) + (element.clientHeight / 2),
+          behavior: 'smooth'
+        });
       }
     }
   }, [isLoaded]);
@@ -740,7 +747,7 @@ export default function Home() {
                  </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="h-64 overflow-y-auto custom-scrollbar pr-2">
+                <div ref={scheduleRef} className="h-64 overflow-y-auto custom-scrollbar pr-2 relative">
                   {TIME_OPTIONS.filter(o => o.value !== "24").map((option) => {
                     const timeValue = parseFloat(option.value);
                     const tasksAtTime = activeTasks.filter(t => {
