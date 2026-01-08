@@ -1,10 +1,11 @@
 import type { Route } from "./+types/about";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
+import { Banknote, BookOpen, Lightbulb, Target } from "lucide-react";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "About - Eat That Frog!" },
+    { title: "About - Leap" },
   ];
 }
 
@@ -73,6 +74,61 @@ export default function About() {
              </ul>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="space-y-6 pt-8 border-t">
+        <div className="text-center space-y-4">
+            <h2 className="text-3xl font-bold tracking-tight">The Leap Ecosystem</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+                Leap goes beyond just daily tasks. It's a complete system for holistic self-improvement.
+            </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+                <CardHeader>
+                    <Target className="h-8 w-8 text-primary mb-2" />
+                    <CardTitle className="text-lg">Goals</CardTitle>
+                    <CardDescription>Long-term Vision</CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                    Set ambitious yearly goals and break them down into actionable steps. Track your progress with our weighted completion system.
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <Banknote className="h-8 w-8 text-green-600 mb-2" />
+                    <CardTitle className="text-lg">Money</CardTitle>
+                    <CardDescription>Financial Freedom</CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                    Take control of your finances. Track income, expenses, and savings goals to build the wealth necessary for your leap.
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <BookOpen className="h-8 w-8 text-blue-500 mb-2" />
+                    <CardTitle className="text-lg">Books</CardTitle>
+                    <CardDescription>Continuous Learning</CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                   Leaders are readers. Maintain your reading list, track your insights, and apply what you learn to grow every day.
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <Lightbulb className="h-8 w-8 text-yellow-500 mb-2" />
+                    <CardTitle className="text-lg">Ideas</CardTitle>
+                    <CardDescription>Spark & Inspiration</CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                    Never lose a brilliant thought again. Capture random ideas, inspirations, and "someday" projects in your personal incubator.
+                </CardContent>
+            </Card>
+        </div>
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Eat That Frog! - Todo App" },
+    { title: "Leap - Focus & Goals" },
     { name: "description", content: "Stop Procrastinating and Get More Done" },
   ];
 }
@@ -563,10 +563,10 @@ export default function Home() {
         {/* Header */}
         <header className="text-center space-y-2">
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-slate-900 dark:text-slate-50">
-            Eat That Frog! 🐸
+            Leap 🐸
           </h1>
           <p className="text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
-            "If it's your job to eat a frog, it's best to do it first thing in the morning."
+            "Leap over procrastination. Tackle your biggest task first."
           </p>
         </header>
 

@@ -24,7 +24,7 @@ import {
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Goals - Eat That Frog!" },
+    { title: "Goals - Leap" },
   ];
 }
 

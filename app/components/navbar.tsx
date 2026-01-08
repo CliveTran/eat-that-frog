@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { CheckCircle2, Info, ListTodo, Target } from "lucide-react";
+import { Banknote, BookOpen, CheckCircle2, Info, Lightbulb, ListTodo, Target } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 export function Navbar() {
@@ -17,8 +17,23 @@ export function Navbar() {
       icon: Target,
     },
     {
+      to: "/money",
+      label: "Money",
+      icon: Banknote,
+    },
+    {
+      to: "/books",
+      label: "Books",
+      icon: BookOpen,
+    },
+    {
+      to: "/ideas",
+      label: "Ideas",
+      icon: Lightbulb,
+    },
+    {
       to: "/about",
-      label: "About Method",
+      label: "About",
       icon: Info,
     },
   ];
@@ -32,7 +47,7 @@ export function Navbar() {
                 <CheckCircle2 className="h-5 w-5 text-white" />
             </div>
             <span className="hidden font-bold sm:inline-block">
-              Eat That Frog!
+              Leap
             </span>
           </Link>
           <div className="flex items-center space-x-6 text-sm font-medium">
