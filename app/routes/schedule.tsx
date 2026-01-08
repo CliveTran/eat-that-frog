@@ -139,7 +139,7 @@ export default function Schedule() {
                     </div>
                     <div className="space-y-2">
                         <Label>Color</Label>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             {COLORS.map(c => (
                                 <div 
                                     key={c.label} 

@@ -55,18 +55,19 @@ export function Navbar() {
               Leap
             </span>
           </Link>
-          <div className="flex items-center space-x-6 text-sm font-medium">
+          <div className="flex items-center space-x-1 sm:space-x-4 md:space-x-6 text-sm font-medium overflow-x-auto scrollbar-hide w-full sm:w-auto px-2 sm:px-0">
             {links.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
                 className={cn(
-                  "transition-colors hover:text-foreground/80 flex items-center gap-2",
+                  "transition-colors hover:text-foreground/80 flex items-center gap-2 px-2 py-1 sm:px-0 shrink-0",
                   location.pathname === link.to ? "text-foreground" : "text-foreground/60"
                 )}
               >
                 <link.icon className="h-4 w-4" />
-                {link.label}
+                <span className="hidden md:inline-block">{link.label}</span>
+                <span className="md:hidden sr-only">{link.label}</span> {/* Accessible label */}
               </Link>
             ))}
           </div>

@@ -522,7 +522,7 @@ function GoalCard({
                {/* In Progress bar - Yellow */}
                <div 
                   className="h-full bg-yellow-400 transition-all duration-500" 
-                  style={{ width: `${(goal.steps.filter(s => s.status === 'In Progress').length / (goal.steps.length || 1)) * 50}%` }}
+                  style={{ width: `${(goal.steps.filter(s => s.status === 'In Progress').length / (goal.steps.length || 1)) * 100}%` }}
                />
             </div>
         </div>

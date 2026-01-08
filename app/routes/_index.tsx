@@ -770,7 +770,7 @@ export default function Home() {
           </Card>
         )}
 
-        <div className="grid gap-8">
+        <div className="grid lg:grid-cols-[1fr_350px] gap-8">
           
           {/* Main List */}
           <div className="space-y-6">
@@ -856,7 +856,7 @@ export default function Home() {
           </div>
 
           {/* Sidebar / Add Task */}
-          <div className="space-y-6">
+          <div className="space-y-6 lg:sticky lg:top-8 h-fit">
             <Card>
               <CardHeader>
                 <CardTitle>Add New Task</CardTitle>
