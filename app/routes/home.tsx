@@ -11,7 +11,7 @@ import { Label } from "~/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { Textarea } from "~/components/ui/textarea";
-import { Trash2, Plus, CheckCircle2, AlertCircle, Info, RefreshCw, ArrowUp, ArrowDown, Timer, Play, Square, Flame, Calendar } from "lucide-react";
+import { Trash2, Plus, CheckCircle2, AlertCircle, Info, RefreshCw, ArrowUp, ArrowDown, Timer, Play, Square, Flame, Calendar, Pencil } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip";
 
@@ -38,14 +38,60 @@ const PRIORITY_COLORS: Record<Priority, string> = {
   E: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700",
 };
 
+const TIME_OPTIONS = Array.from({ length: 48 }).map((_, i) => {
+  const hour = Math.floor(i / 2);
+  const minute = i % 2 === 0 ? "00" : "30";
+  return {
+    value: (i / 2).toString(),
+    label: `${hour.toString().padStart(2, '0')}:${minute}`
+  };
+});
+// Add 24:00 as an end option
+TIME_OPTIONS.push({ value: "24", label: "24:00" });
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>("A");
   const [newTaskIsRecurring, setNewTaskIsRecurring] = useState(false);
-  const [newTaskDuration, setNewTaskDuration] = useState("");
+  const [newTaskDuration, setNewTaskDuration] = useState("0.5");
+  const [newTaskStartHour, setNewTaskStartHour] = useState<string>("");
+  const [newTaskEndHour, setNewTaskEndHour] = useState<string>("");
+  const [newTaskEndsNextDay, setNewTaskEndsNextDay] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Timer for current time highlight
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  // Edit State
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editPriority, setEditPriority] = useState<Priority>("A");
+  const [editIsRecurring, setEditIsRecurring] = useState(false);
+  const [editDuration, setEditDuration] = useState("");
+  const [editStartHour, setEditStartHour] = useState<string>("");
+  const [editEndHour, setEditEndHour] = useState<string>("");
+  const [editEndsNextDay, setEditEndsNextDay] = useState(false);
+
+  useEffect(() => {
+    if (editingTask && editStartHour && editDuration) {
+      const end = calculateEndTime(editStartHour, editDuration);
+      if (end) setEditEndHour(end);
+    }
+  }, [editStartHour, editDuration, editingTask]);
+
+  useEffect(() => {
+    if (newTaskStartHour && newTaskDuration) {
+      const end = calculateEndTime(newTaskStartHour, newTaskDuration);
+      if (end) setNewTaskEndHour(end);
+    }
+  }, [newTaskStartHour, newTaskDuration]);
 
   // Timer State
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
@@ -75,7 +121,7 @@ export default function Home() {
   };
 
   const startTask = (task: Task) => {
-    const durationHours = task.estimatedHours || 1; // Default to 1 hour if not set
+    const durationHours = task.estimatedHours || 0.5; // Default to 0.5 hour if not set
     setTimerSeconds(durationHours * 3600);
     setActiveTaskId(task.id);
     setIsTimerRunning(true);
@@ -183,6 +229,97 @@ export default function Home() {
     }
   }, [tasks, dailyStats, isLoaded]);
 
+  useEffect(() => {
+    if (isLoaded) {
+      const currentHour = new Date().getHours();
+      const element = document.getElementById(`schedule-hour-${currentHour}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [isLoaded]);
+
+  const calculateEndTime = (startStr: string, durationStr: string) => {
+    if (!startStr || !durationStr) return { end: "", nextDay: false };
+    const start = parseFloat(startStr);
+    const duration = parseFloat(durationStr);
+    if (isNaN(start) || isNaN(duration)) return { end: "", nextDay: false };
+
+    let end = start + duration;
+    let nextDay = false;
+    
+    if (end >= 24) {
+      end = end - 24;
+      nextDay = true;
+    }
+    
+    return { end: end.toString(), nextDay };
+  };
+
+  const openEditModal = (task: Task) => {
+    setEditingTask(task);
+    setEditTitle(task.title);
+    setEditPriority(task.priority);
+    setEditIsRecurring(task.isRecurring || false);
+    // Default to 0.5 hours if not set, to match new task behavior
+    setEditDuration(task.estimatedHours !== undefined ? task.estimatedHours.toString() : "0.5");
+    setEditStartHour(task.startHour !== undefined ? task.startHour.toString() : "");
+    setEditEndHour(task.endHour !== undefined ? task.endHour.toString() : "");
+    setEditEndsNextDay(task.endsNextDay || false);
+  };
+
+  const handleEditDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditDuration(e.target.value);
+  };
+
+  const handleEditStartHourChange = (val: string) => {
+    setEditStartHour(val);
+  }
+
+  const saveEditedTask = () => {
+      if (!editingTask || !editTitle.trim()) return;
+
+      const updatedTask: Task = {
+          ...editingTask,
+          title: editTitle,
+          priority: editPriority,
+          isRecurring: editIsRecurring,
+          estimatedHours: editDuration ? parseFloat(editDuration) : undefined,
+          startHour: editStartHour ? parseFloat(editStartHour) : undefined,
+          endHour: editEndHour ? parseFloat(editEndHour) : undefined,
+          endsNextDay: editEndsNextDay,
+      };
+
+      setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+      setEditingTask(null);
+  };
+
+  useEffect(() => {
+    if (editingTask && editStartHour && editDuration) {
+      const { end } = calculateEndTime(editStartHour, editDuration);
+      if (end) {
+          setEditEndHour(end);
+      }
+    }
+  }, [editStartHour, editDuration, editingTask]);
+
+  useEffect(() => {
+    if (newTaskStartHour && newTaskDuration) {
+      const { end } = calculateEndTime(newTaskStartHour, newTaskDuration);
+      if (end) {
+          setNewTaskEndHour(end);
+      }
+    }
+  }, [newTaskStartHour, newTaskDuration]);
+
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewTaskDuration(e.target.value);
+  };
+
+  const handleStartHourChange = (val: string) => {
+    setNewTaskStartHour(val);
+  }
+
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
@@ -199,6 +336,9 @@ export default function Home() {
       completed: false,
       isRecurring: newTaskIsRecurring,
       estimatedHours: newTaskDuration ? parseFloat(newTaskDuration) : undefined,
+      startHour: newTaskStartHour ? parseFloat(newTaskStartHour) : undefined,
+      endHour: newTaskEndHour ? parseFloat(newTaskEndHour) : undefined,
+      endsNextDay: newTaskEndsNextDay,
       order: maxOrder + 1,
       createdAt: Date.now(),
     };
@@ -207,7 +347,10 @@ export default function Home() {
     setNewTaskTitle("");
     setNewTaskPriority("A");
     setNewTaskIsRecurring(false);
-    setNewTaskDuration("");
+    setNewTaskDuration("0.5");
+    setNewTaskStartHour("");
+    setNewTaskEndHour("");
+    setNewTaskEndsNextDay(false);
   };
 
   const toggleTask = (id: string) => {
@@ -303,6 +446,111 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>
+              Make changes to your task here. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+             <div className="space-y-2">
+                <Label htmlFor="edit-title">Task Title</Label>
+                <Input 
+                  id="edit-title" 
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-duration">Est. Duration (Hours)</Label>
+                <Input 
+                  id="edit-duration" 
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={editDuration}
+                  onChange={handleEditDurationChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-startHour">Start Time</Label>
+                  <Select value={editStartHour} onValueChange={handleEditStartHourChange}>
+                    <SelectTrigger id="edit-startHour">
+                      <SelectValue placeholder="Start" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.filter(o => o.value !== "24").map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                   <Label htmlFor="edit-endHour">End Time</Label>
+                   <Select value={editEndHour} onValueChange={setEditEndHour}>
+                    <SelectTrigger id="edit-endHour">
+                      <SelectValue placeholder="End" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                   </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                    id="edit-next-day"
+                    checked={editEndsNextDay}
+                    onCheckedChange={(c) => setEditEndsNextDay(!!c)}
+                />
+                <Label htmlFor="edit-next-day">Ends Next Day</Label>
+              </div>
+              {editStartHour && editEndHour && !editEndsNextDay && parseFloat(editEndHour) <= parseFloat(editStartHour) && (
+                  <p className="text-xs text-red-500">End time must be after start time</p>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-priority">Priority</Label>
+                <Select value={editPriority} onValueChange={(v) => setEditPriority(v as Priority)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">A - Must do (Frog)</SelectItem>
+                    <SelectItem value="B">B - Should do</SelectItem>
+                    <SelectItem value="C">C - Nice to do</SelectItem>
+                    <SelectItem value="D">D - Delegate</SelectItem>
+                    <SelectItem value="E">E - Eliminate</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="edit-recurring" 
+                  checked={editIsRecurring}
+                  onCheckedChange={(c) => setEditIsRecurring(!!c)}
+                />
+                <Label htmlFor="edit-recurring">
+                  Recurring Task (Daily)
+                </Label>
+              </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTask(null)}>Cancel</Button>
+            <Button onClick={saveEditedTask}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* Header */}
@@ -320,7 +568,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="h-5 w-5 text-orange-500" />
-              <h2 className="text-xl font-semibold tracking-tight">Daily Progress</h2>
+              <h2 className="text-xl font-semibold tracking-tight">Daily Progress ({new Date().getFullYear()})</h2>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <div className="flex items-center gap-1">
@@ -331,40 +579,70 @@ export default function Home() {
                 <div className="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-900/50"></div>
                 <span>Tasks Done</span>
               </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-sm bg-red-200 dark:bg-red-900/50"></div>
+                <span>No Activity</span>
+              </div>
             </div>
           </div>
           
           <Card>
             <CardContent className="p-4">
-              <div className="flex flex-wrap gap-1 justify-center md:justify-start">
-                {Array.from({ length: 28 }).map((_, i) => {
-                  const date = new Date();
-                  date.setDate(date.getDate() - (27 - i));
-                  const dateStr = date.toISOString().split('T')[0];
-                  const stat = dailyStats.find(s => s.date === dateStr);
-                  
-                  let bgClass = "bg-slate-100 dark:bg-slate-800";
-                  if (stat?.frogEaten) {
-                    bgClass = "bg-green-500";
-                  } else if (stat && stat.tasksCompleted > 0) {
-                    bgClass = "bg-green-200 dark:bg-green-900/50";
-                  }
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {Array.from({ length: 12 }).map((_, monthIndex) => {
+                  const currentYear = new Date().getFullYear();
+                  const date = new Date(Date.UTC(currentYear, monthIndex, 1));
+                  const monthName = date.toLocaleString('default', { month: 'long', timeZone: 'UTC' });
+                  const daysInMonth = new Date(Date.UTC(currentYear, monthIndex + 1, 0)).getUTCDate();
 
                   return (
-                    <TooltipProvider key={i}>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <div 
-                            className={cn("w-8 h-8 rounded-sm transition-colors", bgClass)}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="font-bold">{date.toLocaleDateString()}</p>
-                          <p>{stat ? `${stat.tasksCompleted} tasks completed` : "No activity"}</p>
-                          {stat?.frogEaten && <p className="text-green-500 font-bold">🐸 Frog Eaten!</p>}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <div key={monthIndex} className="space-y-2">
+                      <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400">{monthName}</h3>
+                      <div className="flex flex-wrap gap-1">
+                        {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
+                          const dayDate = new Date(Date.UTC(currentYear, monthIndex, dayIndex + 1));
+                          const dateStr = dayDate.toISOString().split('T')[0];
+                          const todayStr = new Date().toISOString().split('T')[0];
+                          const stat = dailyStats.find(s => s.date === dateStr);
+                          const isFuture = dateStr > todayStr;
+                          
+                          let bgClass = "bg-slate-100 dark:bg-slate-800";
+                          
+                          if (!isFuture) {
+                            if (stat?.frogEaten) {
+                              bgClass = "bg-green-500";
+                            } else if (stat && stat.tasksCompleted > 0) {
+                              bgClass = "bg-green-200 dark:bg-green-900/50";
+                            } else {
+                              bgClass = "bg-red-200 dark:bg-red-900/50";
+                            }
+                          }
+
+                          return (
+                            <TooltipProvider key={dayIndex}>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <div 
+                                    className={cn("w-3 h-3 rounded-sm transition-colors", bgClass)}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-bold">{dayDate.toLocaleDateString(undefined, { timeZone: 'UTC' })}</p>
+                                  {isFuture ? (
+                                    <p>Future</p>
+                                  ) : (
+                                    <>
+                                      <p>{stat ? `${stat.tasksCompleted} tasks completed` : "No activity"}</p>
+                                      {stat?.frogEaten && <p className="text-green-500 font-bold">🐸 Frog Eaten!</p>}
+                                    </>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -388,6 +666,9 @@ export default function Home() {
                   <Badge className={cn("text-lg px-3 py-1", PRIORITY_COLORS[frog.priority])}>
                     Priority {frog.priority}
                   </Badge>
+                  <Button variant="ghost" size="icon" onClick={() => openEditModal(frog)} className="text-slate-400 hover:text-blue-500">
+                    <Pencil className="h-5 w-5" />
+                  </Button>
                 </div>
                 <CardTitle className="text-3xl mt-2 flex items-center gap-2">
                   {frog.title}
@@ -449,6 +730,64 @@ export default function Home() {
           
           {/* Main List */}
           <div className="space-y-6">
+            
+            {/* Daily Schedule */}
+            <Card>
+              <CardHeader className="pb-3 border-b dark:border-slate-800">
+                 <CardTitle className="text-lg flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-slate-500" /> 
+                    Daily Schedule
+                 </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="h-64 overflow-y-auto custom-scrollbar pr-2">
+                  {TIME_OPTIONS.filter(o => o.value !== "24").map((option) => {
+                    const timeValue = parseFloat(option.value);
+                    const tasksAtTime = activeTasks.filter(t => {
+                        if (t.startHour === undefined || t.endHour === undefined) return false;
+                        
+                        if (t.endsNextDay) {
+                             // Case: 9pm (21) to 8am (8)
+                             // Active if time >= 21 OR time < 8
+                             return timeValue >= t.startHour || timeValue < t.endHour;
+                        } else {
+                            // Case: 9am (9) to 11am (11)
+                            // Active if 9 <= time < 11
+                            return t.startHour <= timeValue && t.endHour > timeValue; 
+                        }
+                    });
+                    
+                    const currentHourFloat = currentTime.getHours() + currentTime.getMinutes() / 60;
+                    const isCurrentSlot = currentHourFloat >= timeValue && currentHourFloat < timeValue + 0.5;
+
+                    return (
+                        <div key={option.value} id={`schedule-hour-${Math.floor(timeValue)}`} 
+                            className={cn(
+                                "flex border-b last:border-0 dark:border-slate-800 transition-colors duration-500", 
+                                option.value.endsWith('.5') ? "bg-slate-50/50 dark:bg-slate-900/20" : "",
+                                isCurrentSlot ? "bg-blue-100 dark:bg-blue-900/30 border-l-4 border-l-blue-500" : ""
+                            )}>
+                            <div className={cn(
+                                "w-16 py-2 pr-4 text-xs font-mono text-right text-slate-500 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-end",
+                                isCurrentSlot ? "text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20" : ""
+                            )}>
+                                {option.label}
+                            </div>
+                            <div className="flex-1 p-1 min-h-[36px] relative hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                {tasksAtTime.map(task => (
+                                    <div key={task.id} className={cn("text-xs rounded px-2 py-1 mb-1 shadow-sm border truncate", PRIORITY_COLORS[task.priority])}>
+                                        <span className="font-bold mr-1 opacity-75">[{task.priority}]</span>
+                                        {task.title}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold tracking-tight">Task List</h2>
               <Badge variant="outline" className="text-sm">
@@ -495,6 +834,9 @@ export default function Home() {
                         <ArrowDown className="h-3 w-3" />
                       </Button>
                     </div>
+                    <Button variant="ghost" size="icon" onClick={() => openEditModal(task)} className="text-slate-400 hover:text-blue-500">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)} className="text-slate-400 hover:text-red-500">
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -554,9 +896,50 @@ export default function Home() {
                       min="0"
                       placeholder="e.g. 1.5" 
                       value={newTaskDuration}
-                      onChange={(e) => setNewTaskDuration(e.target.value)}
+                      onChange={handleDurationChange}
                     />
                   </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="startHour">Start Time</Label>
+                      <Select value={newTaskStartHour} onValueChange={handleStartHourChange}>
+                        <SelectTrigger id="startHour">
+                          <SelectValue placeholder="Start" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIME_OPTIONS.filter(o => o.value !== "24").map((option) => (
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                       <Label htmlFor="endHour">End Time</Label>
+                       <Select value={newTaskEndHour} onValueChange={setNewTaskEndHour}>
+                        <SelectTrigger id="endHour">
+                          <SelectValue placeholder="End" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIME_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                       </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                        id="new-next-day"
+                        checked={newTaskEndsNextDay}
+                        onCheckedChange={(c) => setNewTaskEndsNextDay(!!c)}
+                    />
+                    <Label htmlFor="new-next-day">Ends Next Day</Label>
+                  </div>
+                  {newTaskStartHour && newTaskEndHour && !newTaskEndsNextDay && parseFloat(newTaskEndHour) <= parseFloat(newTaskStartHour) && (
+                      <p className="text-xs text-red-500">End time must be after start time</p>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="priority">Priority</Label>

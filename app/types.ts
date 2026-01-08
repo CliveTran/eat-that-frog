@@ -8,6 +8,9 @@ export interface Task {
   completed: boolean;
   isRecurring?: boolean;
   estimatedHours?: number;
+  startHour?: number; // 0-23
+  endHour?: number;   // 0-23
+  endsNextDay?: boolean;
   failureReason?: string;
   order: number;
   createdAt: number;
