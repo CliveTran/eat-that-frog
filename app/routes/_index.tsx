@@ -9,7 +9,7 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Label } from "~/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { Textarea } from "~/components/ui/textarea";
 import { Trash2, Plus, CheckCircle2, AlertCircle, Info, RefreshCw, ArrowUp, ArrowDown, Timer, Play, Square, Flame, Calendar, Pencil } from "lucide-react";
 import { cn } from "~/lib/utils";
@@ -38,6 +38,20 @@ const PRIORITY_COLORS: Record<Priority, string> = {
   E: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700",
 };
 
+const BLOCK_COLORS = [
+  { label: "Blue", value: "bg-blue-100 dark:bg-blue-900/50 border-blue-200 dark:border-blue-800" },
+  { label: "Green", value: "bg-green-100 dark:bg-green-900/50 border-green-200 dark:border-green-800" },
+  { label: "Yellow", value: "bg-yellow-100 dark:bg-yellow-900/50 border-yellow-200 dark:border-yellow-800" },
+  { label: "Red", value: "bg-red-100 dark:bg-red-900/50 border-red-200 dark:border-red-800" },
+  { label: "Purple", value: "bg-purple-100 dark:bg-purple-900/50 border-purple-200 dark:border-purple-800" },
+  { label: "Gray", value: "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" },
+];
+
+const BLOCK_TIMES = Array.from({ length: 24 }).flatMap((_, i) => [
+    `${i.toString().padStart(2, '0')}:00`,
+    `${i.toString().padStart(2, '0')}:30`
+]);
+
 const TIME_OPTIONS = Array.from({ length: 48 }).map((_, i) => {
   const hour = Math.floor(i / 2);
   const minute = i % 2 === 0 ? "00" : "30";
@@ -61,6 +75,14 @@ export default function Home() {
   const [newTaskStartHour, setNewTaskStartHour] = useState<string>("");
   const [newTaskEndHour, setNewTaskEndHour] = useState<string>("");
   const [newTaskEndsNextDay, setNewTaskEndsNextDay] = useState(false);
+  
+  // Block State
+  const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
+  const [newBlockTitle, setNewBlockTitle] = useState("");
+  const [newBlockStart, setNewBlockStart] = useState("09:00");
+  const [newBlockEnd, setNewBlockEnd] = useState("17:00");
+  const [newBlockColor, setNewBlockColor] = useState(BLOCK_COLORS[0].value);
+
   const [isLoaded, setIsLoaded] = useState(false);
   
   const scheduleRef = useRef<HTMLDivElement>(null);
@@ -85,17 +107,35 @@ export default function Home() {
 
   useEffect(() => {
     if (editingTask && editStartHour && editDuration) {
-      const end = calculateEndTime(editStartHour, editDuration);
-      if (end) setEditEndHour(end);
+      const { end, nextDay } = calculateEndTime(editStartHour, editDuration);
+      if (end) {
+         setEditEndHour(end);
+         setEditEndsNextDay(nextDay);
+      }
     }
   }, [editStartHour, editDuration, editingTask]);
 
   useEffect(() => {
     if (newTaskStartHour && newTaskDuration) {
-      const end = calculateEndTime(newTaskStartHour, newTaskDuration);
-      if (end) setNewTaskEndHour(end);
+      const { end, nextDay } = calculateEndTime(newTaskStartHour, newTaskDuration);
+      if (end) {
+          setNewTaskEndHour(end);
+          setNewTaskEndsNextDay(nextDay);
+      }
     }
   }, [newTaskStartHour, newTaskDuration]);
+
+  const handleEndHourChange = (val: string) => {
+    setNewTaskEndHour(val);
+    if (newTaskStartHour) {
+        const start = parseFloat(newTaskStartHour);
+        const end = parseFloat(val);
+        let diff = end - start;
+        if (diff < 0) diff += 24;
+        diff = Math.round(diff * 10) / 10;
+        setNewTaskDuration(diff.toString());
+    }
+  };
 
   // Timer State
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
@@ -235,8 +275,9 @@ export default function Home() {
     if (isLoaded) {
       localStorage.setItem("eat-that-frog-tasks", JSON.stringify(tasks));
       localStorage.setItem("eat-that-frog-stats", JSON.stringify(dailyStats));
+      localStorage.setItem("eat-that-frog-blocks", JSON.stringify(blocks));
     }
-  }, [tasks, dailyStats, isLoaded]);
+  }, [tasks, dailyStats, blocks, isLoaded]);
 
   useEffect(() => {
     if (isLoaded && scheduleRef.current) {
@@ -269,6 +310,62 @@ export default function Home() {
     
     return { end: end.toString(), nextDay };
   };
+
+  // Auto-select current block on load/update
+  useEffect(() => {
+    // Only run if we have blocks and no block is currently selected
+    // We check blocks.length to trigger when blocks are loaded or changed
+    if (isLoaded && blocks.length > 0 && newTaskBlockId === "none") {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const activeBlock = blocks.find(b => {
+        const [h, m] = b.startTime.split(':').map(Number);
+        const start = h * 60 + m;
+        const [h2, m2] = b.endTime.split(':').map(Number);
+        const end = h2 * 60 + m2;
+        return currentMinutes >= start && currentMinutes < end;
+      });
+
+      if (activeBlock) {
+        // We call handleBlockChange to ensure start/end times are also set
+        // But we need to be careful not to create an infinite loop if this effect depended on newTaskBlockId
+        // Since we only depend on blocks.length/isLoaded, this is safe-ish.
+        // However, we need to access the LATEST 'handleBlockChange' or the logic inside it.
+        // Since handleBlockChange depends on 'blocks' and 'tasks', calling it here uses the closure's version.
+        
+        // Direct logic implementation to avoid stale closure issues or dependency chains
+        setNewTaskBlockId(activeBlock.id);
+        
+        let startVal = parseFloat(timeStringToDecimal(activeBlock.startTime));
+        const endVal = parseFloat(timeStringToDecimal(activeBlock.endTime));
+
+       // Find existing tasks in this block to chain
+        const existingTasks = tasks.filter(t => t.blockId === activeBlock.id);
+        if (existingTasks.length > 0) {
+            const latestEnd = existingTasks.reduce((max, t) => {
+                return (t.endHour || 0) > max ? (t.endHour || 0) : max;
+            }, 0);
+            
+            if (latestEnd > startVal) {
+                startVal = latestEnd;
+            }
+        }
+
+        let calculatedEnd = endVal;
+        if (startVal >= calculatedEnd) {
+             calculatedEnd = startVal + 0.5;
+        }
+
+        const duration = calculatedEnd - startVal;
+        
+        setNewTaskStartHour(startVal.toString());
+        setNewTaskEndHour(calculatedEnd.toString());
+        setNewTaskDuration(duration.toString());
+        setNewTaskEndsNextDay(false);
+      }
+    }
+  }, [isLoaded, blocks.length]); // Intentionally omitting tasks/newTaskBlockId to prevent loops/override
 
   const openEditModal = (task: Task) => {
     setEditingTask(task);
@@ -333,9 +430,80 @@ export default function Home() {
     setNewTaskStartHour(val);
   }
 
+  const timeStringToDecimal = (timeStr: string) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return (hours + (minutes / 60)).toString();
+  };
+
+  const handleBlockChange = (blockId: string) => {
+    setNewTaskBlockId(blockId);
+    if (blockId !== "none") {
+      const block = blocks.find(b => b.id === blockId);
+      if (block) {
+        let startVal = parseFloat(timeStringToDecimal(block.startTime));
+        const endVal = parseFloat(timeStringToDecimal(block.endTime));
+
+        // Find existing tasks in this block to chain
+        const existingTasks = tasks.filter(t => t.blockId === blockId);
+        if (existingTasks.length > 0) {
+            const latestEnd = existingTasks.reduce((max, t) => {
+                return (t.endHour || 0) > max ? (t.endHour || 0) : max;
+            }, 0);
+            
+            if (latestEnd > startVal) {
+                startVal = latestEnd;
+            }
+        }
+
+        let calculatedEnd = endVal;
+        // If the block is full or we're starting after the block ends, default to +30 mins
+        if (startVal >= calculatedEnd) {
+             calculatedEnd = startVal + 0.5;
+        }
+
+        const duration = calculatedEnd - startVal;
+        
+        setNewTaskStartHour(startVal.toString());
+        setNewTaskEndHour(calculatedEnd.toString());
+        setNewTaskDuration(duration.toString());
+      }
+    }
+  };
+
+  const addBlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBlockTitle.trim()) return;
+    
+    const newBlock: ScheduleBlock = {
+        id: crypto.randomUUID(),
+        title: newBlockTitle,
+        startTime: newBlockStart,
+        endTime: newBlockEnd,
+        color: newBlockColor,
+    };
+    
+    setBlocks([...blocks, newBlock].sort((a, b) => a.startTime.localeCompare(b.startTime)));
+    setNewBlockTitle("");
+    setIsBlockDialogOpen(false);
+    
+    // Auto Select this block for the task
+    setNewTaskBlockId(newBlock.id);
+    const startDecimal = timeStringToDecimal(newBlock.startTime);
+    const endDecimal = timeStringToDecimal(newBlock.endTime);
+    setNewTaskStartHour(startDecimal);
+    setNewTaskEndHour(endDecimal);
+    const diff = parseFloat(endDecimal) - parseFloat(startDecimal);
+    if (diff > 0) setNewTaskDuration(diff.toString());
+  };
+
+  const deleteBlock = (id: string) => {
+    setBlocks(blocks.filter(b => b.id !== id));
+  };
+
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
+    if (newTaskBlockId === "none") return;
 
     // Find max order for this priority
     const maxOrder = tasks
@@ -362,10 +530,27 @@ export default function Home() {
     setNewTaskPriority("A");
     setNewTaskIsRecurring(false);
     setNewTaskDuration("0.5");
-    setNewTaskBlockId("none");
-    setNewTaskStartHour("");
-    setNewTaskEndHour("");
-    setNewTaskEndsNextDay(false);
+
+    // Auto-select block based on current time
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const activeBlock = blocks.find(b => {
+      const [h, m] = b.startTime.split(':').map(Number);
+      const start = h * 60 + m;
+      const [h2, m2] = b.endTime.split(':').map(Number);
+      const end = h2 * 60 + m2;
+      return currentMinutes >= start && currentMinutes < end;
+    });
+
+    if (activeBlock) {
+      handleBlockChange(activeBlock.id);
+      setNewTaskEndsNextDay(false);
+    } else {
+      setNewTaskBlockId("none");
+      setNewTaskStartHour("");
+      setNewTaskEndHour("");
+      setNewTaskEndsNextDay(false);
+    }
   };
 
   const toggleTask = (id: string) => {
@@ -407,6 +592,31 @@ export default function Home() {
   const activeTasks = tasks.filter(t => !t.completed);
   const completedTasks = tasks.filter(t => t.completed);
 
+  // Time-Block Filter Logic
+  const getMinutes = (timeStr: string) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+  };
+
+  const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+  
+  const activeBlock = blocks.find(b => {
+      const start = getMinutes(b.startTime);
+      const end = getMinutes(b.endTime);
+      return currentMinutes >= start && currentMinutes < end;
+  });
+
+  const contextTasks = activeTasks.filter(t => {
+      if (activeBlock) {
+          // If in a block, show only tasks for that block
+          return t.blockId === activeBlock.id;
+      }
+      // If NOT in a block, show tasks that are NOT assigned to any block
+      // Or tasks assigned to blocks that don't exist
+      const taskBlock = blocks.find(b => b.id === t.blockId);
+      return !taskBlock;
+  });
+
   // Sort: Priority (A->E), then Order, then CreatedAt
   const sortTasks = (taskList: Task[]) => {
     return [...taskList].sort((a, b) => {
@@ -420,7 +630,7 @@ export default function Home() {
     });
   };
 
-  const sortedActiveTasks = sortTasks(activeTasks);
+  const sortedActiveTasks = sortTasks(contextTasks);
   const frog = sortedActiveTasks.length > 0 ? sortedActiveTasks[0] : null;
   const otherTasks = sortedActiveTasks.length > 0 ? sortedActiveTasks.slice(1) : [];
 
@@ -602,6 +812,62 @@ export default function Home() {
           </p>
         </header>
 
+        {/* Create Block Dialog - Moved here to be accessible from sidebar */}
+        <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add Schedule Block</DialogTitle>
+                    <DialogDescription>Define a high-level time block (e.g., Work, Gym, Study).</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={addBlock} className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Block Name</Label>
+                        <Input placeholder="e.g. Deep Work" value={newBlockTitle} onChange={e => setNewBlockTitle(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Start Time</Label>
+                            <Select value={newBlockStart} onValueChange={setNewBlockStart}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {BLOCK_TIMES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>End Time</Label>
+                            <Select value={newBlockEnd} onValueChange={setNewBlockEnd}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {BLOCK_TIMES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Color</Label>
+                        <div className="flex flex-wrap gap-2">
+                            {BLOCK_COLORS.map(c => (
+                                <div 
+                                    key={c.label} 
+                                    className={cn(
+                                        "w-8 h-8 rounded-full border-2 cursor-pointer transition-all", 
+                                        c.value.split(" ")[0], 
+                                        newBlockColor === c.value ? "ring-2 ring-offset-2 ring-black dark:ring-white scale-110" : "border-transparent"
+                                    )}
+                                    onClick={() => setNewBlockColor(c.value)}
+                                    title={c.label}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit">Create Block</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+
         {/* Progress Section */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
@@ -777,15 +1043,23 @@ export default function Home() {
 
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold tracking-tight">Task List</h2>
-              <Badge variant="outline" className="text-sm">
-                {activeTasks.length} remaining
-              </Badge>
+              <div className="flex items-center gap-2">
+                 {activeBlock && (
+                     <Badge variant="secondary" className={cn("text-xs font-normal border", activeBlock.color)}>
+                        Focus: {activeBlock.title}
+                     </Badge>
+                 )}
+                 <Badge variant="outline" className="text-sm">
+                    {contextTasks.length} remaining
+                 </Badge>
+              </div>
             </div>
 
             <Tabs defaultValue="active" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="active">Active</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="schedule">Schedule</TabsTrigger>
               </TabsList>
               
               <TabsContent value="active" className="space-y-4 mt-4">
@@ -852,6 +1126,63 @@ export default function Home() {
                   </div>
                 ))}
               </TabsContent>
+
+              <TabsContent value="schedule" className="space-y-4 mt-4">
+                 <div className="flex justify-end">
+                    <Button size="sm" variant="outline" onClick={() => setIsBlockDialogOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Time Block
+                    </Button>
+                 </div>
+
+                 {blocks.length === 0 && (
+                    <div className="text-center py-12 border-2 border-dashed rounded-lg text-slate-500">
+                        No time blocks set. Create one to organize your day!
+                    </div>
+                 )}
+
+                 {blocks.map(block => {
+                    const blockTasks = tasks.filter(t => t.blockId === block.id && !t.completed);
+                    return (
+                        <Card key={block.id} className={cn("overflow-hidden border-l-4", block.color)}>
+                            <CardHeader className="py-3 flex flex-row items-center justify-between space-y-0">
+                                <div className="flex items-center gap-4">
+                                     <div className="flex flex-col">
+                                        <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{block.startTime} - {block.endTime}</span>
+                                        <CardTitle className="text-lg">{block.title}</CardTitle>
+                                     </div>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500" onClick={() => deleteBlock(block.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </CardHeader>
+                            {blockTasks.length > 0 && (
+                                <CardContent className="pb-3 pt-0">
+                                     <div className="pl-4 border-l-2 border-slate-200 dark:border-slate-700 ml-1 mt-1 space-y-1">
+                                        {blockTasks.map(task => {
+                                            const startLabel = task.startHour !== undefined ? TIME_OPTIONS.find(o => o.value === task.startHour?.toString())?.label : null;
+                                            const endLabel = task.endHour !== undefined ? TIME_OPTIONS.find(o => o.value === task.endHour?.toString())?.label : null;
+                                            
+                                            return (
+                                                <div key={task.id} className="text-sm flex items-center justify-between gap-2 text-slate-600 dark:text-slate-400">
+                                                    <div className="flex items-center gap-2 truncate">
+                                                        <div className={cn("w-2 h-2 rounded-full shrink-0", PRIORITY_COLORS[task.priority].split(' ')[0])} />
+                                                        <span className="truncate">{task.title}</span>
+                                                    </div>
+                                                    {startLabel && endLabel && (
+                                                        <span className="text-xs font-mono text-slate-400 whitespace-nowrap">
+                                                            {startLabel}-{endLabel}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                     </div>
+                                </CardContent>
+                            )}
+                        </Card>
+                    )
+                 })}
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -891,7 +1222,7 @@ export default function Home() {
                     <div className="space-y-2">
                       <Label htmlFor="startHour">Start Time</Label>
                       <Select value={newTaskStartHour} onValueChange={handleStartHourChange}>
-                        <SelectTrigger id="startHour">
+                        <SelectTrigger id="startHour" className="w-full">
                           <SelectValue placeholder="Start" />
                         </SelectTrigger>
                         <SelectContent>
@@ -901,24 +1232,11 @@ export default function Home() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
-                       <Label>Assign to Block</Label>
-                       <Select value={newTaskBlockId} onValueChange={setNewTaskBlockId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="No Block" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No Block</SelectItem>
-                          {blocks.map(b => (
-                              <SelectItem key={b.id} value={b.id}>{b.title} ({b.startTime})</SelectItem>
-                          ))}
-                        </SelectContent>
-                       </Select>
-                    </div>
+
                     <div className="space-y-2">
                        <Label htmlFor="endHour">End Time</Label>
-                       <Select value={newTaskEndHour} onValueChange={setNewTaskEndHour}>
-                        <SelectTrigger id="endHour">
+                       <Select value={newTaskEndHour} onValueChange={handleEndHourChange}>
+                        <SelectTrigger id="endHour" className="w-full">
                           <SelectValue placeholder="End" />
                         </SelectTrigger>
                         <SelectContent>
@@ -927,6 +1245,35 @@ export default function Home() {
                           ))}
                         </SelectContent>
                        </Select>
+                    </div>
+
+                    <div className="space-y-2 col-span-2">
+                       <div className="flex justify-between items-center">
+                           <Label>Assign to Block (Required)</Label>
+                           {blocks.length > 0 && (
+                               <Button variant="link" size="sm" type="button" className="h-auto p-0 text-xs" onClick={() => setIsBlockDialogOpen(true)}>
+                                   + New Block
+                               </Button>
+                           )}
+                       </div>
+                       {blocks.length === 0 ? (
+                           <Button variant="outline" type="button" className="w-full border-dashed" onClick={() => setIsBlockDialogOpen(true)}>
+                               <Plus className="mr-2 h-4 w-4" /> Create your first Block
+                           </Button>
+                       ) : (
+                           <Select value={newTaskBlockId} onValueChange={handleBlockChange}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select Block" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60">
+                              <SelectItem value="none" disabled>Select Block</SelectItem>
+                              {blocks.map(b => (
+                                  <SelectItem key={b.id} value={b.id}>{b.title} ({b.startTime})</SelectItem>
+                              ))}
+                            </SelectContent>
+                           </Select>
+                       )}
+                       {newTaskBlockId === "none" && blocks.length > 0 && <p className="text-xs text-red-500">Please assign this task to a focus block.</p>}
                     </div>
                   </div>
                   
@@ -972,7 +1319,7 @@ export default function Home() {
                     </Label>
                   </div>
 
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full" disabled={newTaskBlockId === "none"}>
                     <Plus className="mr-2 h-4 w-4" /> Add Task
                   </Button>
                 </form>
