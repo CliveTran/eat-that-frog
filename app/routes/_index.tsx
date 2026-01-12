@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Coffee } from "lucide-react";
 import type { Route } from "./+types/_index";
 import type { Task, DailyStats, ScheduleBlock, Priority } from "~/types";
 import { getMinutes, sortTasks } from "~/lib/utils";
@@ -211,12 +212,18 @@ export default function Home() {
     setBlocks(blocks.filter(b => b.id !== id));
   };
 
+  const unassignTaskFromBlock = (taskId: string) => {
+    setTasks(tasks.map(t => t.id === taskId ? { ...t, blockId: undefined } : t));
+  };
+
 
   // Filtering / Derived State
   const activeTasks = tasks.filter(t => !t.completed);
   const completedTasks = tasks.filter(t => t.completed);
 
   // Time-Block Filter Logic (Context Tasks)
+  // We keep this to determine 'activeBlock' for UI highlighting, 
+  // but we no longer filter tasks by it for the main list or frog.
   const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
   
   const activeBlock = blocks.find(b => {
@@ -225,17 +232,12 @@ export default function Home() {
       return currentMinutes >= start && currentMinutes < end;
   });
 
-  const contextTasks = activeTasks.filter(t => {
-      if (activeBlock) {
-          return t.blockId === activeBlock.id;
-      }
-      const taskBlock = blocks.find(b => b.id === t.blockId);
-      return !taskBlock;
-  });
-
-  const sortedActiveTasks = sortTasks(contextTasks);
+  const sortedActiveTasks = sortTasks(activeTasks);
   const frog = sortedActiveTasks.length > 0 ? sortedActiveTasks[0] : null;
   const otherTasks = sortedActiveTasks.length > 0 ? sortedActiveTasks.slice(1) : [];
+  
+  // NOTE: Logic split - Frog is completely independent from Schedule now. 
+  // 'activeBlock' is used only for UI highlighting in the list/schedule view.
 
   if (!isLoaded) return null;
 
@@ -256,7 +258,6 @@ export default function Home() {
         onOpenChange={(open) => !open && setEditingTask(null)}
         task={editingTask}
         onSave={handleSaveEditedTask}
-        blocks={blocks}
       />
 
       <AddBlockDialog 
@@ -292,7 +293,7 @@ export default function Home() {
                 deleteTask={deleteTask}
             />
         )}
-
+        
         {/* Empty State */}
         {!frog && activeTasks.length === 0 && (
           <div className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900 p-6 rounded-lg text-center border">
@@ -306,12 +307,13 @@ export default function Home() {
           
           {/* Main List */}
           <TaskList 
+            mode="priority"
             otherTasks={otherTasks}
             completedTasks={completedTasks}
             blocks={blocks}
             allTasks={tasks}
             activeBlock={activeBlock}
-            contextCount={contextTasks.length}
+            contextCount={activeTasks.length}
             frog={frog}
             toggleTask={toggleTask}
             deleteTask={deleteTask}
@@ -319,14 +321,12 @@ export default function Home() {
             openEditModal={setEditingTask}
             deleteBlock={deleteBlock}
             onAddBlock={() => setIsBlockDialogOpen(true)}
+            unassignTaskFromBlock={unassignTaskFromBlock}
           />
 
           {/* Sidebar */}
           <TaskForm 
-            blocks={blocks}
             onAddTask={handleAddTask}
-            onRequestAddBlock={() => setIsBlockDialogOpen(true)}
-            lastCreatedBlockId={lastCreatedBlockId}
           />
 
         </div>

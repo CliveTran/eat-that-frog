@@ -4,9 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
-import { TIME_OPTIONS } from "~/lib/constants";
-import { calculateEndTime } from "~/lib/utils";
-import type { Priority, ScheduleBlock, Task } from "~/types";
+import type { Priority, Task } from "~/types";
 import { useEffect, useState } from "react";
 
 interface EditTaskDialogProps {
@@ -14,20 +12,13 @@ interface EditTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (task: Task) => void;
-  blocks: ScheduleBlock[];
 }
 
-export function EditTaskDialog({ task, open, onOpenChange, onSave, blocks }: EditTaskDialogProps) {
+export function EditTaskDialog({ task, open, onOpenChange, onSave }: EditTaskDialogProps) {
   const [editTitle, setEditTitle] = useState("");
   const [editPriority, setEditPriority] = useState<Priority>("A");
   const [editIsRecurring, setEditIsRecurring] = useState(false);
   const [editDuration, setEditDuration] = useState("");
-  const [editStartHour, setEditStartHour] = useState<string>("");
-  const [editEndHour, setEditEndHour] = useState<string>("");
-  const [editEndsNextDay, setEditEndsNextDay] = useState(false);
-  // We need to track blockId locally as well for the form state
-  const [editBlockId, setEditBlockId] = useState<string | undefined>(undefined);
-
 
   // Initialize state when task changes or dialog opens
   useEffect(() => {
@@ -36,23 +27,8 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, blocks }: Edi
         setEditPriority(task.priority);
         setEditIsRecurring(task.isRecurring || false);
         setEditDuration(task.estimatedHours !== undefined ? task.estimatedHours.toString() : "0.5");
-        setEditStartHour(task.startHour !== undefined ? task.startHour.toString() : "");
-        setEditEndHour(task.endHour !== undefined ? task.endHour.toString() : "");
-        setEditEndsNextDay(task.endsNextDay || false);
-        setEditBlockId(task.blockId);
     }
   }, [task, open]);
-
-  // Auto-calculate end time when start/duration changes
-  useEffect(() => {
-    if (open && editStartHour && editDuration) {
-      const { end, nextDay } = calculateEndTime(editStartHour, editDuration);
-      if (end) {
-         setEditEndHour(end);
-         setEditEndsNextDay(nextDay);
-      }
-    }
-  }, [editStartHour, editDuration, open]);
 
   const handleSave = () => {
       if (!task || !editTitle.trim()) return;
@@ -63,10 +39,6 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, blocks }: Edi
           priority: editPriority,
           isRecurring: editIsRecurring,
           estimatedHours: editDuration ? parseFloat(editDuration) : undefined,
-          startHour: editStartHour ? parseFloat(editStartHour) : undefined,
-          endHour: editEndHour ? parseFloat(editEndHour) : undefined,
-          endsNextDay: editEndsNextDay,
-          blockId: editBlockId,
       };
       
       onSave(updatedTask);
@@ -103,66 +75,6 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, blocks }: Edi
                 onChange={(e) => setEditDuration(e.target.value)}
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label htmlFor="edit-startHour">Start Time</Label>
-                <Select value={editStartHour} onValueChange={setEditStartHour}>
-                  <SelectTrigger id="edit-startHour">
-                    <SelectValue placeholder="Start" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_OPTIONS.filter(o => o.value !== "24").map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2 col-span-2">
-                 <Label>Schedule Block</Label>
-                 <Select 
-                      value={editBlockId || "none"} 
-                      onValueChange={(val) => setEditBlockId(val === "none" ? undefined : val)}
-                  >
-                  <SelectTrigger>
-                    <SelectValue placeholder="No Block" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Block</SelectItem>
-                    {blocks.map(b => (
-                        <SelectItem key={b.id} value={b.id}>{b.title} ({b.startTime})</SelectItem>
-                    ))}
-                  </SelectContent>
-                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                 <Label htmlFor="edit-endHour">End Time</Label>
-                 <Select value={editEndHour} onValueChange={setEditEndHour}>
-                  <SelectTrigger id="edit-endHour">
-                    <SelectValue placeholder="End" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                 </Select>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                  id="edit-next-day"
-                  checked={editEndsNextDay}
-                  onCheckedChange={(c) => setEditEndsNextDay(!!c)}
-              />
-              <Label htmlFor="edit-next-day">Ends Next Day</Label>
-            </div>
-            {editStartHour && editEndHour && !editEndsNextDay && parseFloat(editEndHour) <= parseFloat(editStartHour) && (
-                <p className="text-xs text-red-500">End time must be after start time</p>
-            )}
 
             <div className="space-y-2">
               <Label htmlFor="edit-priority">Priority</Label>
