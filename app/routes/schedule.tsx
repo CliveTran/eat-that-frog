@@ -11,6 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { Calendar, Plus, Trash2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 
+import { getMinutes } from "~/lib/utils";
+
+import { ScrollArea } from "~/components/ui/scroll-area";
+
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Schedule - Leap" },
@@ -36,6 +40,7 @@ export default function Schedule() {
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]); // To show subtasks
   const [isLoaded, setIsLoaded] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date()); // Add current time state
   
   // New Block State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -43,6 +48,7 @@ export default function Schedule() {
   const [newStart, setNewStart] = useState("09:00");
   const [newEnd, setNewEnd] = useState("17:00");
   const [newColor, setNewColor] = useState(COLORS[0].value);
+  const currentTimeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const savedBlocks = localStorage.getItem("eat-that-frog-blocks");
@@ -59,7 +65,18 @@ export default function Schedule() {
        } catch (e) { console.error(e); }
     }
     setIsLoaded(true);
+
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (isLoaded && blocks.length > 0 && currentTimeRef.current) {
+        setTimeout(() => {
+            currentTimeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
+    }
+  }, [isLoaded, blocks.length]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -94,6 +111,8 @@ export default function Schedule() {
       return (h * 60 + m); // minutes from midnight
   };
 
+  const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+
   return (
     <div className="container py-8 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -104,13 +123,13 @@ export default function Schedule() {
          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
                 <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Add Time Block
+                    <Plus className="mr-2 h-4 w-4" /> Add Daily Block
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Add Schedule Block</DialogTitle>
-                    <DialogDescription>Define a high-level time block (e.g., Work, Gym, Study).</DialogDescription>
+                    <DialogTitle>Add Daily Block</DialogTitle>
+                    <DialogDescription>Create a time block that repeats every day.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={addBlock} className="space-y-4 py-4">
                     <div className="space-y-2">
@@ -162,45 +181,89 @@ export default function Schedule() {
          </Dialog>
       </div>
       
-      <div className="grid gap-4">
-        {blocks.length === 0 && (
+      <ScrollArea className="h-[calc(100vh-200px)] rounded-md border p-4">
+        {blocks.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed rounded-lg text-muted-foreground">
                 No time blocks set. Create one to organize your day!
             </div>
-        )}
-        
-        {blocks.map(block => {
-            const blockTasks = tasks.filter(t => t.blockId === block.id && !t.completed);
-            
-            return (
-                <Card key={block.id} className={cn("overflow-hidden border-l-4", block.color)}>
-                    <CardHeader className="py-3 flex flex-row items-center justify-between space-y-0">
-                        <div className="flex items-center gap-4">
-                             <div className="flex flex-col">
-                                <span className="text-xs font-mono text-muted-foreground">{block.startTime} - {block.endTime}</span>
-                                <CardTitle className="text-lg">{block.title}</CardTitle>
-                             </div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500" onClick={() => deleteBlock(block.id)}>
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </CardHeader>
-                    {blockTasks.length > 0 && (
-                        <CardContent className="pb-3 pt-0">
-                             <div className="pl-4 border-l-2 border-slate-200 dark:border-slate-700 ml-1 mt-1 space-y-1">
-                                {blockTasks.map(task => (
-                                    <div key={task.id} className="text-sm flex items-center gap-2 text-muted-foreground">
-                                        <div className={`w-2 h-2 rounded-full ${task.priority === 'A' ? 'bg-red-500' : 'bg-slate-300'}`} />
-                                        <span>{task.title}</span>
+        ) : (
+            <div className="relative min-h-[1728px]">
+                {/* Current Time Indicator */}
+                <div 
+                    ref={currentTimeRef}
+                    className="absolute w-full border-t-2 border-red-500 z-50 flex items-center pointer-events-none"
+                    style={{ top: `${currentMinutes * 1.2}px` }}
+                >
+                    <div className="absolute -left-1.5 w-3 h-3 bg-red-500 rounded-full shadow-sm" />
+                </div>
+
+                {/* Time Grid Lines (00:00 - 23:00) 1.2px per minute */}
+                {Array.from({ length: 24 }).map((_, i) => (
+                    <div 
+                        key={i} 
+                        className="absolute w-full flex items-center group" 
+                        style={{ top: `${i * 60 * 1.2}px` }}
+                    >
+                        <span className="w-12 text-xs text-muted-foreground text-right pr-3 -mt-2 group-hover:text-foreground transition-colors">
+                            {i.toString().padStart(2, '0')}:00
+                        </span>
+                        <div className="flex-1 border-t border-slate-100 dark:border-slate-800" />
+                    </div>
+                ))}
+
+                {blocks.map(block => {
+                    const blockTasks = tasks.filter(t => t.blockId === block.id && !t.completed);
+                    
+                    const startMinutes = getMinutes(block.startTime);
+                    let endMinutes = getMinutes(block.endTime);
+                    if (endMinutes < startMinutes) endMinutes += 24 * 60;
+                    
+                    const durationMinutes = endMinutes - startMinutes;
+                    const height = Math.max(40, durationMinutes * 1.2); // Min height 40px for visibility
+
+                    return (
+                        <Card 
+                            key={block.id} 
+                            className={cn("absolute border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all inset-x-0 ml-16 mr-2", block.color)} 
+                            style={{ 
+                                top: `${startMinutes * 1.2}px`,
+                                height: `${height}px`,
+                                zIndex: 10
+                            }}
+                        >
+                            <CardHeader className="py-2 px-3 flex flex-row items-start justify-between space-y-0 h-full">
+                                <div className="flex flex-col min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <CardTitle className="text-sm font-semibold truncate leading-tight">{block.title}</CardTitle>
+                                        <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground/80 opacity-70">
+                                            {block.startTime} - {block.endTime}
+                                        </span>
                                     </div>
-                                ))}
-                             </div>
-                        </CardContent>
-                    )}
-                </Card>
-            )
-        })}
-      </div>
+                                    
+                                    {blockTasks.length > 0 && (
+                                        <div className="flex flex-col gap-0.5 overflow-hidden">
+                                            {blockTasks.slice(0, 3).map(task => (
+                                                <div key={task.id} className="text-[10px] flex items-center gap-1.5 text-muted-foreground truncate">
+                                                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${task.priority === 'A' ? 'bg-red-500' : 'bg-slate-300'}`} />
+                                                    <span className="truncate">{task.title}</span>
+                                                </div>
+                                            ))}
+                                            {blockTasks.length > 3 && (
+                                                <span className="text-[9px] text-muted-foreground pl-2.5">+{blockTasks.length - 3} more</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1 -mt-1 text-muted-foreground hover:text-red-500 flex-shrink-0" onClick={() => deleteBlock(block.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                </Button>
+                            </CardHeader>
+                        </Card>
+                    )
+                })}
+            </div>
+        )}
+      </ScrollArea>
     </div>
   );
 }

@@ -50,8 +50,8 @@ export function AddBlockDialog({ open, onOpenChange, onBlockAdd }: AddBlockDialo
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Add Schedule Block</DialogTitle>
-                    <DialogDescription>Define a high-level time block (e.g., Work, Gym, Study).</DialogDescription>
+                    <DialogTitle>Add Daily Block</DialogTitle>
+                    <DialogDescription>Create a time block that repeats every day (e.g., Work, Gym).</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">

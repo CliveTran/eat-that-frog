@@ -1,12 +1,14 @@
 import { ArrowDown, ArrowUp, Clock, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
-import { cn } from "~/lib/utils";
+import { cn, getMinutes } from "~/lib/utils";
 import { PRIORITY_COLORS, PRIORITY_LABELS } from "~/lib/constants";
 import type { ScheduleBlock, Task } from "~/types";
+
+import { ScrollArea } from "~/components/ui/scroll-area";
 
 const formatDecimalHour = (decimalHour: number) => {
   const hours = Math.floor(decimalHour);
@@ -45,6 +47,28 @@ export function TaskList({
   onAddBlock,
   unassignTaskFromBlock
 }: TaskListProps) {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const currentTimeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Only run timer if we are in schedule mode to save resources, 
+    // BUT hooks must be consistent. 
+    // So we run it always, or we risk hook mismatch if mode changes (it shouldn't in this app structure usually, but good practice).
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    setCurrentTime(new Date());
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+     if (mode === "schedule" && blocks.length > 0 && currentTimeRef.current) {
+         // Small timeout to ensure rendering
+         setTimeout(() => {
+             currentTimeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+         }, 100);
+     }
+  }, [mode, blocks.length]);
+
+  const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
 
   // RENDER: PRIORITY LIST (ABCDE)
   if (mode === "priority") {
@@ -140,7 +164,7 @@ export function TaskList({
            <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold tracking-tight">Daily Schedule</h2>
               <Button size="sm" variant="outline" onClick={onAddBlock}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Time Block
+                  <Plus className="mr-2 h-4 w-4" /> Add Daily block
               </Button>
            </div>
 
@@ -150,62 +174,76 @@ export function TaskList({
               </div>
            )}
 
-           {blocks.map(block => {
-              const blockTasks = allTasks.filter(t => t.blockId === block.id && !t.completed);
-              return (
-                  <Card key={block.id} className={cn("overflow-hidden border-l-4", block.color)}>
-                      <CardHeader className="py-3 flex flex-row items-center justify-between space-y-0">
-                          <div className="flex items-center gap-4">
-                               <div className="bg-white/50 dark:bg-black/20 px-2 py-1 rounded text-sm font-bold">
-                                  {block.startTime} - {block.endTime}
-                               </div>
-                               <h3 className="font-semibold">{block.title}</h3>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500" onClick={() => deleteBlock(block.id)}>
-                              <Trash2 className="h-4 w-4" />
-                          </Button>
-                      </CardHeader>
-                      {blockTasks.length > 0 && (
-                          <CardContent className="pb-4 pt-1 px-4">
-                               <div className="space-y-2">
-                                  {blockTasks.map(t => (
-                                      <div key={t.id} className="group relative bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-md p-2.5 hover:shadow-sm hover:bg-white dark:hover:bg-slate-800 transition-all flex items-start gap-2">
-                                          <div className="flex-1 min-w-0">
-                                              <div className="flex items-center justify-between">
-                                                  <div className="flex items-center gap-2 truncate pr-2">
-                                                      <Badge variant="outline" className={cn("text-[10px] h-4 px-1 py-0", PRIORITY_COLORS[t.priority])}>{t.priority}</Badge>
-                                                      <span className={cn("text-sm font-medium truncate", t.completed && "line-through text-slate-400 decoration-slate-400/50")}>
-                                                          {t.title}
-                                                      </span>
-                                                  </div>
-                                                  <Button 
-                                                      variant="ghost" 
-                                                      size="icon" 
-                                                      className="h-6 w-6 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0" 
-                                                      onClick={() => unassignTaskFromBlock(t.id)}
-                                                      title="Remove from block"
-                                                  >
-                                                      <X className="h-3.5 w-3.5" />
-                                                  </Button>
-                                              </div>
-                                              
-                                              {(t.startHour !== undefined && t.endHour !== undefined) && (
-                                                  <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500">
-                                                      <Clock className="w-3 h-3 text-slate-400" />
-                                                      <span className="font-mono bg-white dark:bg-slate-900 px-1.5 rounded text-[10px] border border-slate-100 dark:border-slate-800">
-                                                          {formatDecimalHour(t.startHour)} - {formatDecimalHour(t.endHour)}
-                                                      </span>
-                                                  </div>
-                                              )}
-                                          </div>
-                                      </div>
-                                  ))}
-                               </div>
-                          </CardContent>
-                      )}
-                  </Card>
-              )
-           })}
+           <ScrollArea className="h-[600px] border rounded-md p-4 bg-slate-50/50 dark:bg-slate-900/50">
+             <div className="relative min-h-[1728px]">
+                {/* Current Time Indicator */}
+                <div 
+                    ref={currentTimeRef}
+                    className="absolute w-full border-t-2 border-red-500 z-50 flex items-center pointer-events-none"
+                    style={{ top: `${currentMinutes * 1.2}px` }}
+                >
+                    <div className="absolute -left-1.5 w-3 h-3 bg-red-500 rounded-full shadow-sm" />
+                </div>
+
+                {/* Time Grid Lines (00:00 - 23:00) 1.2px per minute */}
+                {Array.from({ length: 24 }).map((_, i) => (
+                    <div 
+                        key={i} 
+                        className="absolute w-full flex items-center group" 
+                        style={{ top: `${i * 60 * 1.2}px` }}
+                    >
+                        <span className="w-10 text-[10px] text-muted-foreground text-right pr-2 -mt-2 group-hover:text-foreground transition-colors">
+                            {i.toString().padStart(2, '0')}:00
+                        </span>
+                        <div className="flex-1 border-t border-slate-200 dark:border-slate-800" />
+                    </div>
+                ))}
+            
+                {blocks.map(block => {
+                    const blockTasks = allTasks.filter(t => t.blockId === block.id && !t.completed);
+                    
+                    const startMinutes = getMinutes(block.startTime);
+                    let endMinutes = getMinutes(block.endTime);
+                    if (endMinutes < startMinutes) endMinutes += 24 * 60; // Handle Next Day
+                    
+                    const durationMinutes = endMinutes - startMinutes;
+                    const height = Math.max(40, durationMinutes * 1.2); 
+
+                    return (
+                        <Card 
+                            key={block.id} 
+                            className={cn("absolute border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all inset-x-0 ml-12 mr-1", block.color)} 
+                            style={{ 
+                                top: `${startMinutes * 1.2}px`,
+                                height: `${height}px`,
+                                zIndex: 10
+                            }}
+                        >
+                            <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0 h-full">
+                                <div className="flex flex-col min-w-0 pr-2">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-sm font-semibold truncate">{block.title}</h3>
+                                        <span className="text-[10px] bg-white/50 dark:bg-black/20 px-1 rounded truncate opacity-70">
+                                            {block.startTime}
+                                        </span>
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground flex gap-1 mt-0.5">
+                                        {blockTasks.length > 0 ? (
+                                           <span>{blockTasks.length} task{blockTasks.length !== 1 && 's'}</span>
+                                        ) : (
+                                           <span className="italic opacity-50">Empty</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteBlock(block.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                            </CardHeader>
+                        </Card>
+                    )
+                })}
+             </div>
+           </ScrollArea>
         </div>
     );
   }
