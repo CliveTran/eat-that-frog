@@ -1,6 +1,12 @@
 import { Card, CardContent } from "~/components/ui/card";
 import { Flame } from "lucide-react";
 import type { DailyStats } from "~/types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 interface StatsHeatmapProps {
   dailyStats: DailyStats[];
@@ -47,23 +53,51 @@ export function StatsHeatmap({ dailyStats }: StatsHeatmapProps) {
                       const dayDate = new Date(Date.UTC(currentYear, monthIndex, dayIndex + 1));
                       const dateStr = dayDate.toISOString().split('T')[0];
                       const todayStr = new Date().toISOString().split('T')[0];
+                      const isToday = dateStr === todayStr;
                       const stat = dailyStats.find(s => s.date === dateStr);
                       
                       let bgClass = "bg-slate-100 dark:bg-slate-800";
                       if (stat) {
                         if (stat.frogEaten) bgClass = "bg-green-500";
-                        else if (stat.tasksCompleted > 0) bgClass = "bg-green-200 dark:bg-green-900/50";
+                        else if (stat.tasksCompleted > 0)
+                          bgClass = "bg-green-200 dark:bg-green-900/50";
                       } else if (dateStr < todayStr) {
-                         // Past days with no stats
-                         bgClass = "bg-red-50 dark:bg-red-900/20";
+                        // Past days with no stats
+                        bgClass = "bg-red-50 dark:bg-red-900/20";
+                      } else if (isToday) {
+                         bgClass = "bg-red-500 animate-pulse";
                       }
 
                       return (
-                        <div 
-                          key={dayIndex} 
-                          title={`${dateStr}: ${stat ? `${stat.tasksCompleted} tasks, ${stat.frogEaten ? 'Frog Eaten' : 'No Frog'}` : 'No activity'}`}
-                          className={`w-3 h-3 rounded-sm ${bgClass}`}
-                        />
+                        <Tooltip key={dayIndex}>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={`w-3 h-3 rounded-sm ${bgClass} ${
+                                isToday
+                                  ? "ring-2 ring-red-500 ring-offset-2 ring-offset-background"
+                                  : ""
+                              }`}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="font-semibold">
+                              {dayDate.toLocaleDateString(undefined, {
+                                timeZone: "UTC",
+                                dateStyle: "medium",
+                              })}
+                            </p>
+                            {stat ? (
+                              <p className="text-xs text-muted-foreground">
+                                {stat.tasksCompleted} tasks
+                                {stat.frogEaten && ", Frog Eaten"}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                No activity
+                              </p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
                       );
                     })}
                   </div>
