@@ -174,7 +174,9 @@ export function RecentTransactions({ transactions, currency, onUpdate, onDelete 
                       <>
                       <div className="flex flex-col">
                         <span className="font-medium">{t.description}</span>
-                        <span className="text-xs text-muted-foreground">{new Date(t.date).toLocaleDateString()}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="font-bold text-red-500">

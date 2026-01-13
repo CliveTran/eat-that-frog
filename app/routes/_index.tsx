@@ -313,7 +313,6 @@ export default function Home() {
             blocks={blocks}
             allTasks={tasks}
             activeBlock={activeBlock}
-            contextCount={activeTasks.length}
             frog={frog}
             toggleTask={toggleTask}
             deleteTask={deleteTask}

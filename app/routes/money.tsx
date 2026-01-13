@@ -171,14 +171,22 @@ export default function Money() {
     const isVND = profile.currency === 'VND'; 
     const multiplier = isVND ? 23000 : 1;
     
-    const mockCurrentTxs: Transaction[] = Array.from({ length: 5 }).map((_, i) => ({
-      id: crypto.randomUUID(),
-      amount: (Math.floor(Math.random() * 50) + 10) * multiplier,
-      description: `Mock Expense ${i + 1}`,
-      date: new Date().toISOString(),
-      type: 'expense'
-    }));
-    setTransactions(mockCurrentTxs);
+    const mockCurrentTxs: Transaction[] = Array.from({ length: 15 }).map((_, i) => {
+      // Random day between 1 and TODAY
+      const day = Math.floor(Math.random() * TODAY) + 1;
+      const hour = Math.floor(Math.random() * 24);
+      const minute = Math.floor(Math.random() * 60);
+      const randomDate = new Date(CURRENT_YEAR, CURRENT_MONTH, day, hour, minute);
+
+      return {
+        id: crypto.randomUUID(),
+        amount: (Math.floor(Math.random() * 50) + 10) * multiplier,
+        description: `Mock Expense ${i + 1}`,
+        date: randomDate.toISOString(),
+        type: 'expense'
+      };
+    });
+    setTransactions(mockCurrentTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
   const handleClearHistory = () => {

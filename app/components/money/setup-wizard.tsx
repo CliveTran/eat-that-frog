@@ -39,16 +39,33 @@ export function SetupWizard({ initialData, onSave, onCancel }: SetupWizardProps)
     }
   }, [initialData]);
 
+  const incomeVal = Number(setupForm.income || 0);
+  const fixedVal = Number(setupForm.fixed || 0);
+  const maxSavings = Math.max(0, incomeVal - fixedVal);
+  const savingsVal = Number(setupForm.savings || 0);
+
   const setupErrors = {
-    income: setupTouched.income && !setupForm.income ? "Income is required" : "",
-    fixed: setupTouched.fixed && !setupForm.fixed ? "Fixed expenses are required (enter 0 if none)" : "",
-    savings: setupTouched.savings && !setupForm.savings ? "Savings goal is required (enter 0 if none)" : "",
+    income: 
+      (setupTouched.income && !setupForm.income) ? "Income is required" : 
+      (setupTouched.income && incomeVal < 1) ? "Income must be greater than 0" :
+      "",
+    fixed: 
+      (setupTouched.fixed && !setupForm.fixed) ? "Fixed expenses are required (enter 0 if none)" : 
+      (fixedVal > incomeVal) ? "Fixed expenses cannot exceed monthly income" :
+      "",
+    savings: 
+      (setupTouched.savings && !setupForm.savings) ? "Savings goal is required (enter 0 if none)" : 
+      (savingsVal > maxSavings) ? `Savings goal cannot exceed ${formatWithDots(maxSavings.toString())}` :
+      "",
   };
 
   const isSetupValid = 
     setupForm.income !== "" && 
+    incomeVal >= 1 &&
     setupForm.fixed !== "" && 
-    setupForm.savings !== "";
+    setupForm.savings !== "" &&
+    !setupErrors.fixed &&
+    !setupErrors.savings;
 
   const handleSetupAmountChange = (value: string, field: keyof typeof setupForm) => {
     const rawValue = value.replace(/\./g, "");
@@ -59,7 +76,14 @@ export function SetupWizard({ initialData, onSave, onCancel }: SetupWizardProps)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isSetupValid) return;
+    if (!isSetupValid) {
+      setSetupTouched({
+        income: true,
+        fixed: true,
+        savings: true,
+      });
+      return;
+    }
     
     onSave({
       monthlyIncome: Number(setupForm.income),
@@ -163,7 +187,17 @@ export function SetupWizard({ initialData, onSave, onCancel }: SetupWizardProps)
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="savings" className="text-base">Savings Goal</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="savings" className="text-base">Savings Goal</Label>
+              <Button 
+                type="button" 
+                variant="link" 
+                className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
+                onClick={() => setSetupForm({ ...setupForm, savings: maxSavings.toString() })}
+              >
+                Max: {setupForm.currency === "VND" ? "₫" : "$"}{formatWithDots(maxSavings.toString())}
+              </Button>
+            </div>
             <div className="relative">
               <PiggyBank className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 

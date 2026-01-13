@@ -23,6 +23,7 @@ interface TaskListProps {
   blocks: ScheduleBlock[];
   allTasks: Task[]; 
   frog: Task | null;
+  activeBlock?: ScheduleBlock;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   moveTask: (id: string, direction: 'up' | 'down') => void;
@@ -39,6 +40,7 @@ export function TaskList({
   blocks,
   allTasks,
   frog,
+  activeBlock,
   toggleTask,
   deleteTask,
   moveTask,
@@ -208,15 +210,20 @@ export function TaskList({
                     
                     const durationMinutes = endMinutes - startMinutes;
                     const height = Math.max(40, durationMinutes * 1.2); 
+                    const isActive = activeBlock?.id === block.id;
 
                     return (
                         <Card 
                             key={block.id} 
-                            className={cn("absolute border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all inset-x-0 ml-12 mr-1", block.color)} 
+                            className={cn(
+                                "absolute border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all inset-x-0 ml-12 mr-1", 
+                                block.color,
+                                isActive && "ring-2 ring-primary ring-offset-2 z-20"
+                            )} 
                             style={{ 
                                 top: `${startMinutes * 1.2}px`,
                                 height: `${height}px`,
-                                zIndex: 10
+                                zIndex: isActive ? 20 : 10
                             }}
                         >
                             <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0 h-full">

@@ -43,8 +43,16 @@ export function DashboardCard({
             {formatCurrency(dailyAvailable, profile.currency)}
           </div>
           <p className="text-sm text-balance text-muted-foreground max-w-xs mx-auto">
-            You can spend this amount <strong>daily</strong> for the rest of the
-            month and end perfectly on budget.
+            {dailyAvailable > 0 ? (
+              <>
+                You can spend this amount <strong>daily</strong> for the rest of the
+                month and end perfectly on budget.
+              </>
+            ) : dailyAvailable === 0 ? (
+              "You've reached your spending limit for today. Try to avoid further expenses."
+            ) : (
+              "You've exceeded your daily safety limit. Reduce spending to balance the month."
+            )}
           </p>
         </div>
         
