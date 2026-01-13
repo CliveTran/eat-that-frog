@@ -39,6 +39,7 @@ export default function Money() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [history, setHistory] = useState<MonthlyRecord[]>([]);
   const [showSetup, setShowSetup] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // --- Persistence ---
   useEffect(() => {
@@ -73,19 +74,26 @@ export default function Money() {
         console.error("Failed to load transactions", e);
       }
     }
+    setIsLoaded(true);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("frog_money_profile", JSON.stringify(profile));
-  }, [profile]);
+    if (isLoaded) {
+      localStorage.setItem("frog_money_profile", JSON.stringify(profile));
+    }
+  }, [profile, isLoaded]);
 
   useEffect(() => {
-    localStorage.setItem("frog_money_history", JSON.stringify(history));
-  }, [history]);
+    if (isLoaded) {
+      localStorage.setItem("frog_money_history", JSON.stringify(history));
+    }
+  }, [history, isLoaded]);
 
   useEffect(() => {
-    localStorage.setItem("frog_money_transactions", JSON.stringify(transactions));
-  }, [transactions]);
+    if (isLoaded) {
+      localStorage.setItem("frog_money_transactions", JSON.stringify(transactions));
+    }
+  }, [transactions, isLoaded]);
 
   // --- Logic: Month Transition ---
   useEffect(() => {
