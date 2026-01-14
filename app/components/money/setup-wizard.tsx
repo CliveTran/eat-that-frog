@@ -221,9 +221,9 @@ export function SetupWizard({ initialData, onSave, onCancel }: SetupWizardProps)
           </div>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-between p-6">
+      <CardFooter className="flex flex-col-reverse sm:flex-row gap-3 p-6 sm:justify-between">
         {onCancel && (
-            <Button type="button" variant="ghost" onClick={onCancel}>
+            <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={onCancel}>
                 Cancel
             </Button>
         )}

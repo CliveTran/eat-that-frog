@@ -93,11 +93,12 @@ export function YearTracker({
     <>
       <Card className="shadow-md">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl flex items-center gap-2">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-xl flex flex-wrap items-center gap-2">
               Year Tracker
               {(history.length === 0 || (history.length === 1 && history[0].month !== CURRENT_MONTH)) ? (
                 <Button 
+
                   variant="default" 
                   size="sm" 
                   className="h-7 text-xs ml-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
@@ -118,7 +119,7 @@ export function YearTracker({
                 </Button>
               )}
             </CardTitle>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Saved {CURRENT_YEAR}</p>
               <p className={cn("text-2xl font-bold", realTotalSaved >= 0 ? "text-green-600" : "text-red-500")}>
                 {formatCurrency(realTotalSaved, profile.currency)}

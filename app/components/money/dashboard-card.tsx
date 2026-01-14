@@ -33,13 +33,13 @@ export function DashboardCard({
     <Card className="shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="grid md:grid-cols-2">
         {/* Left: The Number */}
-        <div className="p-8 flex flex-col justify-center items-center text-center md:border-r border-border/50">
-          <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+        <div className="p-5 md:p-8 flex flex-col justify-center items-center text-center md:border-r border-border/50">
+          <span className="text-xs md:text-sm font-medium uppercase tracking-wider text-muted-foreground mb-2 flex flex-wrap justify-center items-center gap-2">
             Safe to Spend Today
             {dailyAvailable <= 0 && <Badge variant="destructive">Over Budget</Badge>}
             {dailyAvailable > 50 && <Badge className="bg-green-500 hover:bg-green-600">Rich Day!</Badge>}
           </span>
-          <div className={cn("text-6xl font-black tracking-tighter mb-2", dailyAvailable <= 0 ? "text-red-500" : "text-primary")}>
+          <div className={cn("text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter mb-2 break-all", dailyAvailable <= 0 ? "text-red-500" : "text-primary")}>
             {formatCurrency(dailyAvailable, profile.currency)}
           </div>
           <p className="text-sm text-balance text-muted-foreground max-w-xs mx-auto">
@@ -57,7 +57,7 @@ export function DashboardCard({
         </div>
         
         {/* Right: The Breakdown */}
-        <div className="p-8 flex flex-col justify-center space-y-6">
+        <div className="p-5 md:p-8 flex flex-col justify-center space-y-6">
            <div className="space-y-2">
              <div className="flex justify-between text-sm">
                <span className="text-muted-foreground">Discretionary Remaining</span>

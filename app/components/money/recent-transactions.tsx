@@ -172,17 +172,17 @@ export function RecentTransactions({ transactions, currency, onUpdate, onDelete 
                       </div>
                   ) : (
                       <>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{t.description}</span>
+                      <div className="flex flex-col min-w-0 mr-2">
+                        <span className="font-medium truncate">{t.description}</span>
                         <span className="text-xs text-muted-foreground">
                           {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="font-bold text-red-500">
+                      <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+                        <div className="font-bold text-red-500 whitespace-nowrap">
                           - {formatCurrency(t.amount, currency)}
                         </div>
-                        <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <Button 
                               variant="ghost" 
                               size="icon" 

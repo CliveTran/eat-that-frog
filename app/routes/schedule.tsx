@@ -114,19 +114,19 @@ export default function Schedule() {
   const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
 
   return (
-    <div className="container py-8 max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container py-8 max-w-4xl mx-auto space-y-6 px-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
          <div className="flex items-center gap-2">
             <Calendar className="h-8 w-8 text-slate-900 dark:text-slate-100" />
             <h1 className="text-3xl font-bold tracking-tight">Daily Schedule</h1>
          </div>
          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Add Daily Block
+                <Button className="w-full sm:w-auto">
+                    <Plus className="mr-2 h-4 w-4" /> Add <span className="hidden sm:inline ml-1">Daily </span>Block
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-[90vw] sm:max-w-md rounded-lg">
                 <DialogHeader>
                     <DialogTitle>Add Daily Block</DialogTitle>
                     <DialogDescription>Create a time block that repeats every day.</DialogDescription>
@@ -204,7 +204,7 @@ export default function Schedule() {
                         className="absolute w-full flex items-center group" 
                         style={{ top: `${i * 60 * 1.2}px` }}
                     >
-                        <span className="w-12 text-xs text-muted-foreground text-right pr-3 -mt-2 group-hover:text-foreground transition-colors">
+                        <span className="w-10 sm:w-12 text-[10px] sm:text-xs text-muted-foreground text-right pr-2 sm:pr-3 -mt-2 group-hover:text-foreground transition-colors flex-shrink-0">
                             {i.toString().padStart(2, '0')}:00
                         </span>
                         <div className="flex-1 border-t border-slate-100 dark:border-slate-800" />
@@ -224,18 +224,18 @@ export default function Schedule() {
                     return (
                         <Card 
                             key={block.id} 
-                            className={cn("absolute border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all inset-x-0 ml-16 mr-2", block.color)} 
+                            className={cn("absolute border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all inset-x-0 ml-12 sm:ml-16 mr-1 sm:mr-2", block.color)} 
                             style={{ 
                                 top: `${startMinutes * 1.2}px`,
                                 height: `${height}px`,
                                 zIndex: 10
                             }}
                         >
-                            <CardHeader className="py-2 px-3 flex flex-row items-start justify-between space-y-0 h-full">
+                            <CardHeader className="py-2 px-2 sm:px-3 flex flex-row items-start justify-between space-y-0 h-full">
                                 <div className="flex flex-col min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <CardTitle className="text-sm font-semibold truncate leading-tight">{block.title}</CardTitle>
-                                        <span className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground/80 opacity-70">
+                                        <CardTitle className="text-xs sm:text-sm font-semibold truncate leading-tight">{block.title}</CardTitle>
+                                        <span className="text-[9px] sm:text-[10px] uppercase tracking-wider font-mono text-muted-foreground/80 opacity-70 whitespace-nowrap">
                                             {block.startTime} - {block.endTime}
                                         </span>
                                     </div>

@@ -218,23 +218,27 @@ export default function Money() {
   }
 
   return (
-    <div className="container py-8 max-w-4xl mx-auto space-y-8">
+    <div className="container py-8 max-w-4xl mx-auto space-y-8 px-4 sm:px-6">
       
       {/* Header / Top Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Wallet className="h-8 w-8 text-primary" />
-            Money
-          </h1>
-          <p className="text-muted-foreground">
-            <span className="font-semibold text-primary/80">{FULL_MONTH_NAMES[CURRENT_MONTH]} {CURRENT_YEAR}</span> • Day {TODAY} of {CURRENT_MONTH_DAYS} • {DAYS_REMAINING} days remaining
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Wallet className="h-8 w-8 text-primary" />
+              Money
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+              <span className="font-semibold text-primary/80 block sm:inline">{FULL_MONTH_NAMES[CURRENT_MONTH]} {CURRENT_YEAR}</span>
+              <span className="hidden sm:inline"> • </span>
+              <span className="block sm:inline">Day {TODAY} of {CURRENT_MONTH_DAYS} • {DAYS_REMAINING} days remaining</span>
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowSetup(true)} className="self-start sm:self-auto">
+            <Settings className="h-4 w-4 mr-2" />
+            Adjust Budget
+          </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowSetup(true)}>
-          <Settings className="h-4 w-4 mr-2" />
-          Adjust Budget
-        </Button>
       </div>
 
       {/* The ONE NUMBER Card */}
