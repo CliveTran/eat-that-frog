@@ -1,6 +1,13 @@
 import { Link, useLocation } from "react-router";
-import { Banknote, BookOpen, Calendar, CheckCircle2, Info, Lightbulb, ListTodo, Target } from "lucide-react";
+import { Banknote, BookOpen, Calendar, CheckCircle2, Info, Lightbulb, ListTodo, Menu, Monitor, Target } from "lucide-react";
 import { cn } from "~/lib/utils";
+import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export function Navbar() {
   const location = useLocation();
@@ -32,6 +39,11 @@ export function Navbar() {
       icon: BookOpen,
     },
     {
+      to: "/screentime",
+      label: "Focus",
+      icon: Monitor,
+    },
+    {
       to: "/ideas",
       label: "Ideas",
       icon: Lightbulb,
@@ -44,38 +56,60 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="mr-4 flex">
+    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <div className="container flex h-14 items-center justify-between px-4">
+        <div className="flex items-center">
           <Link to="/" className="mr-6 flex items-center space-x-2">
             <div className="bg-green-600 rounded-full p-1">
-                <CheckCircle2 className="h-5 w-5 text-white" />
+              <CheckCircle2 className="h-5 w-5 text-white" />
             </div>
-            <span className="hidden font-bold sm:inline-block">
+            <span className="font-bold inline-block">
               Leap
             </span>
           </Link>
-          <div className="flex items-center space-x-1 sm:space-x-4 md:space-x-6 text-sm font-medium overflow-x-auto scrollbar-hide w-full sm:w-auto px-2 sm:px-0">
+
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center space-x-6 text-sm font-medium">
             {links.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
                 className={cn(
-                  "transition-colors hover:text-foreground/80 flex items-center gap-2 px-2 py-1 sm:px-0 shrink-0",
+                  "transition-colors hover:text-foreground/80 flex items-center gap-2",
                   location.pathname === link.to ? "text-foreground" : "text-foreground/60"
                 )}
               >
                 <link.icon className="h-4 w-4" />
-                <span className="hidden md:inline-block">{link.label}</span>
-                <span className="md:hidden sr-only">{link.label}</span> {/* Accessible label */}
+                <span>{link.label}</span>
               </Link>
             ))}
           </div>
         </div>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            {/* Future standard search or actions */}
-          </div>
+
+        {/* Mobile Nav */}
+        <div className="md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px]">
+              {links.map((link) => (
+                <DropdownMenuItem key={link.to} asChild>
+                  <Link to={link.to} className="flex items-center gap-2 cursor-pointer w-full">
+                    <link.icon className="h-4 w-4 mr-2" />
+                    <span>{link.label}</span>
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="hidden md:flex items-center space-x-2">
+          {/* Future standard search or actions */}
         </div>
       </div>
     </nav>
