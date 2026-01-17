@@ -85,7 +85,7 @@ export function GoalCard({
                         <span>{goal.progress}%</span>
                     </div>
                     {/* Multi-colored progress bar */}
-                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 flex">
+                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted flex">
                         {/* Completed bar - Green */}
                         <div
                             className="h-full bg-green-500 transition-all duration-500"
@@ -186,7 +186,7 @@ export function GoalCard({
                 </div>
             </CardContent>
 
-            <CardFooter className="pt-2 pb-4 border-t bg-slate-50/50 dark:bg-slate-900/50 flex flex-col gap-3">
+            <CardFooter className="pt-2 pb-4 border-t bg-muted/50 flex flex-col gap-3">
                 <form onSubmit={handleAddStep} className="flex w-full gap-2">
                     <Input
                         value={newStep}

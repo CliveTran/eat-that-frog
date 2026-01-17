@@ -26,16 +26,16 @@ export function StatsHeatmap({ dailyStats }: StatsHeatmapProps) {
             <span>Frog Eaten</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-900/50"></div>
+            <div className="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-800"></div>
             <span>Tasks Done</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm bg-red-200 dark:bg-red-900/50"></div>
+            <div className="w-3 h-3 rounded-sm bg-red-200 dark:bg-red-900"></div>
             <span>No Activity</span>
           </div>
         </div>
       </div>
-      
+
       <Card>
         <CardContent className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -55,28 +55,27 @@ export function StatsHeatmap({ dailyStats }: StatsHeatmapProps) {
                       const todayStr = new Date().toISOString().split('T')[0];
                       const isToday = dateStr === todayStr;
                       const stat = dailyStats.find(s => s.date === dateStr);
-                      
-                      let bgClass = "bg-slate-100 dark:bg-slate-800";
+
+                      let bgClass = "bg-muted";
                       if (stat) {
                         if (stat.frogEaten) bgClass = "bg-green-500";
                         else if (stat.tasksCompleted > 0)
-                          bgClass = "bg-green-200 dark:bg-green-900/50";
+                          bgClass = "bg-green-200 dark:bg-green-800";
                       } else if (dateStr < todayStr) {
                         // Past days with no stats
-                        bgClass = "bg-red-50 dark:bg-red-900/20";
+                        bgClass = "bg-red-100 dark:bg-red-900";
                       } else if (isToday) {
-                         bgClass = "bg-red-500 animate-pulse";
+                        bgClass = "bg-red-500 animate-pulse";
                       }
 
                       return (
                         <Tooltip key={dayIndex}>
                           <TooltipTrigger asChild>
                             <div
-                              className={`w-3 h-3 rounded-sm ${bgClass} ${
-                                isToday
-                                  ? "ring-2 ring-red-500 ring-offset-2 ring-offset-background"
-                                  : ""
-                              }`}
+                              className={`w-3 h-3 rounded-sm ${bgClass} ${isToday
+                                ? "ring-2 ring-red-500 ring-offset-2 ring-offset-background"
+                                : ""
+                                }`}
                             />
                           </TooltipTrigger>
                           <TooltipContent>

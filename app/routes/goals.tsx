@@ -214,7 +214,7 @@ export default function Goals() {
   if (!isLoaded) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-sans">
+    <div className="min-h-screen p-4 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-8">
 
         {/* Header Section */}

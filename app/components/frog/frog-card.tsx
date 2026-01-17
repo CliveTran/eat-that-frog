@@ -16,14 +16,14 @@ interface FrogCardProps {
   deleteTask: (id: string) => void;
 }
 
-export function FrogCard({ 
-  frog, 
-  activeTaskId, 
-  timerSeconds, 
-  startTask, 
-  stopTask, 
-  openEditModal, 
-  deleteTask 
+export function FrogCard({
+  frog,
+  activeTaskId,
+  timerSeconds,
+  startTask,
+  stopTask,
+  openEditModal,
+  deleteTask
 }: FrogCardProps) {
   return (
     <section className="space-y-4">
@@ -31,7 +31,7 @@ export function FrogCard({
         <AlertCircle className="h-5 w-5 text-red-500" />
         <h2 className="text-xl font-semibold tracking-tight">Your Frog (Do this first!)</h2>
       </div>
-      <Card className="border-2 border-red-500/50 shadow-lg bg-white dark:bg-slate-900 relative overflow-hidden">
+      <Card className="border-2 border-red-500/50 shadow-lg bg-card relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
           <span className="text-9xl">🐸</span>
         </div>
@@ -42,10 +42,10 @@ export function FrogCard({
             </Badge>
             <div className="flex gap-1">
               <Button variant="ghost" size="icon" onClick={() => openEditModal(frog)} className="text-slate-400 hover:text-blue-500">
-                  <Pencil className="h-5 w-5" />
+                <Pencil className="h-5 w-5" />
               </Button>
               <Button variant="ghost" size="icon" onClick={() => deleteTask(frog.id)} className="text-slate-400 hover:text-red-500">
-                  <Trash2 className="h-5 w-5" />
+                <Trash2 className="h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -65,13 +65,13 @@ export function FrogCard({
         <CardFooter>
           {activeTaskId === frog.id ? (
             <div className="w-full space-y-4">
-              <div className="text-center py-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
+              <div className="text-center py-4 bg-muted rounded-lg">
                 <span className="text-4xl font-mono font-bold text-slate-900 dark:text-slate-100">
                   {formatTime(timerSeconds)}
                 </span>
               </div>
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 variant="destructive"
                 className="w-full text-lg h-12"
                 onClick={stopTask}
@@ -81,8 +81,8 @@ export function FrogCard({
               </Button>
             </div>
           ) : (
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="w-full md:w-auto text-lg h-12 bg-red-600 hover:bg-red-700 text-white"
               onClick={() => startTask(frog)}
             >
