@@ -1,7 +1,7 @@
 import type { Route } from "./+types/about";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
-import { Banknote, BookOpen, Calendar, Lightbulb, Monitor, Moon, Target } from "lucide-react";
+import { Banknote, BookOpen, Brain, Calendar, Lightbulb, Monitor, Moon, Target } from "lucide-react";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -126,6 +126,17 @@ export default function About() {
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Never lose a brilliant thought again. Capture random ideas, inspirations, and "someday" projects in your personal incubator.
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Brain className="h-8 w-8 text-purple-600 dark:text-purple-400 mb-2" />
+              <CardTitle className="text-lg">Philosophy</CardTitle>
+              <CardDescription>Wisdom & Mindset</CardDescription>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              Curated life lessons to build discipline, motivation, and a winning mindset. Timeless wisdom to guide your journey.
             </CardContent>
           </Card>
 

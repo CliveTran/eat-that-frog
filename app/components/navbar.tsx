@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { Banknote, BookOpen, Calendar, CheckCircle2, Info, Lightbulb, ListTodo, Menu, Monitor, Moon, Sun, Target } from "lucide-react";
+import { Banknote, BookOpen, Brain, Calendar, CheckCircle2, Info, Lightbulb, ListTodo, Menu, Monitor, Moon, Sun, Target } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "./ui/button";
 import {
@@ -50,6 +50,11 @@ export function Navbar() {
       to: "/ideas",
       label: "Ideas",
       icon: Lightbulb,
+    },
+    {
+      to: "/philosophy",
+      label: "Philosophy",
+      icon: Brain,
     },
     {
       to: "/about",
